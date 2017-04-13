@@ -26,9 +26,14 @@ $(function () {
     var PROVIDER_CONF = 'provider-conf';
 
     var REFRESH_INTERVAL = 'refreshInterval';
-    var operatorId = 0, serviceProviderId = 0, apiId = 0, applicationId = 0, apiN='';
+    //var operatorId = 0, serviceProviderId = 0, apiId = 0, applicationId = 0, apiN='';
+    var operatorName = "all", serviceProviderId = 0, apiId = 0, applicationId = 0, apiN='';
+    var role;
+    var selectedOperator;
+    var operatorSelected = false;
 
     var init = function () {
+
         $.ajax({
             url: gadgetLocation + '/conf.json',
             method: "GET",
@@ -36,11 +41,21 @@ $(function () {
             async: false,
             success: function (data) {
                 conf = JSON.parse(data);
-                conf.operator = operatorId;
+
+                if (operatorSelected) {
+                    conf.operatorName = selectedOperator;
+                } else {
+                   conf.operatorName = operatorName;
+                }
+
+                //conf.operator = operatorId;
                 conf.serviceProvider = serviceProviderId;
                 conf.api = apiId;
                 conf.applicationName = applicationId;
-conf.apiName = apiN;
+                conf.apiName = apiN;
+
+
+                //this call is not success
                 $.ajax({
                     url: gadgetLocation + '/gadget-controller.jag?action=getSchema',
                     method: "POST",
@@ -69,6 +84,42 @@ conf.apiName = apiN;
         });
         return providerData;
     };
+    
+    
+    var getRole = function () {
+        conf.operator = "test";
+        conf["provider-conf"]["tableName"] = "test123";
+        $.ajax({
+            url:gadgetLocation + '/gadget-controller.jag?action=getRole',
+            method:"POST",
+            data:JSON.stringify(conf),
+            contentType:"application/json",
+            async:"false",
+            success: function (data) {
+                role = data.role;
+                if ("operatoradmin" == role) {
+                    $("#operatordd").hide();
+                } else {
+                    $("#operatordd").show();
+                }
+            }
+        })
+    };
+    
+    var getOperatorNameinProfile = function() {
+        conf.operator = "test123";
+        conf["provider-conf"]["tableName"] = "test";
+        $.ajax({
+            url:gadgetLocation + '/gadget-controller.jag?action=getProfileOperator',
+            method:"POST",
+            data:JSON.stringify(conf),
+            contentType:"application/json",
+            async: false,
+            success: function (data) {
+                operatorName = data.operatorName;
+            }
+        })
+    }
 
 
     var drawGadget = function () {
@@ -87,7 +138,7 @@ conf.apiName = apiN;
         getGadgetLocation(function (gadget_Location) {
             gadgetLocation = gadget_Location;
 
-            conf.operator = operatorId;
+            //conf.operator = operatorId;
             conf.serviceProvider = serviceProviderId;
             conf.api = apiId;
             conf.apiName = apiN;
@@ -149,57 +200,81 @@ conf.apiName = apiN;
     getGadgetLocation(function (gadget_Location) {
         gadgetLocation = gadget_Location;
         init();
+        getRole();
         loadOperator();
         // loadSP();
         // loadApp();
         // loadApi();
 
-          function loadOperator (){
-                      conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_OPERATOR_SUMMARY";
-                      conf["provider-conf"]["provider-name"] = "operator";
-                      conf.operator = 0;
-                      operatorId = 0;
-                      $.ajax({
-                          url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                          method: "POST",
-                          data: JSON.stringify(conf),
-                          contentType: "application/json",
-                          async: false,
-                          success: function (data) {
-                              $("#dropdown-operator").empty();
-                              var operatorsItems = "";
-                              var operatorIds = [];
-                              var loadedOperator = [];
-                              operatorIds.push(operatorId);
-                              operatorsItems += '<li><a data-val="0" href="#">All</a></li>';
-                              for (var i =0 ; i < data.length; i++) {
-                                  var operator = data[i];
-                                  if($.inArray(operator.operatorId, loadedOperator)<0){
-                                  operatorsItems += '<li><a data-val='+ operator.operatorId +' href="#">' + operator.operatorName +'</a></li>';
-                                  operatorIds.push(" "+operator.operatorId);
-                                  loadedOperator.push(operator.operatorId);
-                                }
-                              }
-                              $("#dropdown-operator").html( $("#dropdown-operator").html() + operatorsItems);
-                              $("#button-operator").val('<li><a data-val="0" href="#">All</a></li>');
-                              loadSP(operatorIds);
+        //we can use operatorId instead of operatorName
+        function loadOperator (){
+            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_OPERATOR_SUMMARY";
+            conf["provider-conf"]["provider-name"] = "operator";
+            //conf.operator = 0;
+            //operatorId = 0;
+            operatorName = "all";
+            $.ajax({
+                url: gadgetLocation + '/gadget-controller.jag?action=getData',
+                method: "POST",
+                data: JSON.stringify(conf),
+                contentType: "application/json",
+                async: false,
+                success: function (data) {
+                    $("#dropdown-operator").empty();
+                    var operatorsItems = "";
+                    //var operatorIds = [];
+                    var operatorNames = [];
+                    var loadedOperator = [];
 
-                              $("#dropdown-operator li a").click(function(){
-                                  $("#button-operator").text($(this).text());
-                                  $("#button-operator").append('<span class="caret"></span>');
-                                  $("#button-operator").val($(this).text());
-                                  operatorIds = $(this).data('val');
-                                  loadSP(operatorIds);
-                              });
-                          }
-                      });
+                    //operatorIds.push(operatorId);
+                    operatorNames.push(operatorName);
+                    operatorsItems += '<li><a data-val="0" href="#">All</a></li>';
+                    for (var i =0 ; i < data.length; i++) {
+                        var operator = data[i];
+                        //if($.inArray(operator.operatorId, loadedOperator)<0){
+                        if($.inArray(operator.operatorName, loadedOperator)<0){
+                            //operatorsItems += '<li><a data-val='+ operator.operatorId +' href="#">' + operator.operatorName +'</a></li>';
+                            operatorsItems += '<li><a data-val='+ operator.operatorName +' href="#">' + operator.operatorName +'</a></li>';
+                            //operatorIds.push(" "+operator.operatorId);
+                            operatorNames.push(" "+operator.operatorName);
+                            //loadedOperator.push(operator.operatorId);
+                            loadedOperator.push(operator.operatorName);
+                        }
                     }
+                    $("#dropdown-operator").html( $("#dropdown-operator").html() + operatorsItems);
+                    $("#button-operator").val('<li><a data-val="0" href="#">All</a></li>');
+                    //loadSP(operatorIds);
+
+                    if ("operatoradmin" == role) {
+                        getOperatorNameinProfile();
+                        loadSP(operatorName);
+                    } else {
+                        //loadSP(operatorIds);
+                        loadSP(operatorNames);
+                    }
+
+                    $("#dropdown-operator li a").click(function(){
+                        $("#button-operator").text($(this).text());
+                        $("#button-operator").append('<span class="caret"></span>');
+                        $("#button-operator").val($(this).text());
+                        //operatorIds = $(this).data('val');
+                        operatorNames = $(this).data('val');
+                        //loadSP(operatorIds);
+                        loadSP(operatorNames);
+                        operatorSelected = true;
+                    });
+                }
+            });
+        }
 
           function loadSP (clickedOperator){
 
             conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
             conf["provider-conf"]["provider-name"] = "operator";
-            conf.operator =  "("+clickedOperator+")";
+            //conf.operator =  "("+clickedOperator+")";
+            conf.operatorName =  "("+clickedOperator+")";
+            selectedOperator = conf.operatorName;
+
             $.ajax({
                 url: gadgetLocation + '/gadget-controller.jag?action=getData',
                 method: "POST",
@@ -245,8 +320,7 @@ conf.apiName = apiN;
         }
 
         function loadApp (sps){
-        // alert(sps);
-        // if(sps)
+
         conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
         conf["provider-conf"]["provider-name"] = "sp";
         conf.serviceProvider = "("+sps+")";
@@ -263,9 +337,9 @@ conf.apiName = apiN;
                 var loadedApps = [];
                 var appItems = '<li><a data-val="0" href="#">All</a></li>';
                 apps.push(applicationId);
-                for ( var i =0 ; i < data.length; i++) {
+                for ( var i = 0 ; i < data.length; i++) {
                     var app = data[i];
-                    if($.inArray(app.applicationId, loadedApps)<0){
+                    if($.inArray(app.applicationId, loadedApps) < 0){
                     appItems += '<li><a data-val='+ app.applicationId +' href="#">' + app.applicationName +'</a></li>'
                     apps.push(" "+app.applicationId);
                     loadedApps.push(app.applicationId);
@@ -308,7 +382,6 @@ conf.apiName = apiN;
           contentType: "application/json",
           async: false,
           success: function (data) {
-            // alert("loadApi :" +JSON.stringify(data));
 
               $("#dropdown-api").empty();
               var apis = [];
@@ -337,13 +410,9 @@ conf.apiName = apiN;
           }
       });
     }
-
-
         $("#button-app").val("All");
         $("#button-api").val("All");
     });
-
-
 });
 
 
