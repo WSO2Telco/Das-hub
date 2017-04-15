@@ -40,8 +40,6 @@
 
     var log = new Log();
 
-    //role = getRole(user);
-
     if (action === 'getRole') {
         var jsonRole = {"role" : role};
         print(jsonRole);
@@ -57,8 +55,6 @@
     if (action === 'getSchema') {
 
         var providerConf = data[PROVIDER_CONF];
-        var logss = new Log();
-        logss.info("UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU --- " + providerConf);
         var providerAPI = require('js/core/' + providerConf[PROVIDER_NAME] + '-provider-api.js');
         print(providerAPI.getSchema(providerConf));
 
