@@ -47,7 +47,7 @@ $(function () {
                 } else {
                    conf.operatorName = operatorName;
                 }
-//TODO:remove this conf.operator
+                //TODO:remove this conf.operator
                 //conf.operator = operatorId;
                 conf.serviceProvider = serviceProviderId;
                 conf.api = apiId;
@@ -73,7 +73,7 @@ $(function () {
     var getProviderData = function () {
 
         $.ajax({
-            url: gadgetLocation + '/gadget-controller.jag?action=getData',
+            url: gadgetLocation + '/gadget-controller.jag?acti"(on=getData',
             method: "POST",
             data: JSON.stringify(conf),
             contentType: "application/json",
@@ -138,8 +138,13 @@ $(function () {
         $("#output").html("");
         getGadgetLocation(function (gadget_Location) {
             gadgetLocation = gadget_Location;
+            if(operatorSelected) {
+                conf.operatorName =  selectedOperator;
+            } else {
+                conf.operatorName =  operatorName;
+            }
 
-            //conf.operator = operatorId;
+            //conf.operator = 10;
             conf.serviceProvider = serviceProviderId;
             conf.api = apiId;
             conf.apiName = apiN;
@@ -213,7 +218,7 @@ $(function () {
                       conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_OPERATOR_SUMMARY";
                       conf["provider-conf"]["provider-name"] = "operator";
                       //conf.operator = 0;
-                      //operatorId = 0;
+              //operatorId = 0;
               operatorName = "all";
                       $.ajax({
                           url: gadgetLocation + '/gadget-controller.jag?action=getData',
@@ -248,6 +253,7 @@ $(function () {
 
                               if ("operatoradmin" == role) {
                                   getOperatorNameinProfile();
+                                  operatorSelected = true;
                                   loadSP(operatorName);
                               } else {
                                   //loadSP(operatorIds);
@@ -262,63 +268,69 @@ $(function () {
                                   //operatorIds = $(this).data('val');
                                   operatorNames = $(this).data('val');
                                   //loadSP(operatorIds);
-                                  loadSP(operatorNames);
                                   operatorSelected = true;
+                                  loadSP(operatorNames);
+
                               });
                           }
                       });
                     }
-//TODO:conf operatorName usage in everywhere
+
           function loadSP (clickedOperator){
 
-            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
-            conf["provider-conf"]["provider-name"] = "operator";
-            //conf.operator =  "("+clickedOperator+")";
-            conf.operatorName =  "("+clickedOperator+")";
-            selectedOperator = conf.operatorName;
 
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-                    $("#dropdown-sp").empty();
-                    var spItems = '';
-                    var spIds = [];
-                    var loadedSps = [];
-                    spIds.push(serviceProviderId);
-                    spItems += '<li><a data-val="0" href="#">All</a></li>';
-                    for ( var i =0 ; i < data.length; i++) {
-                        var sp = data[i];
-                        if($.inArray(sp.serviceProviderId, loadedSps)<0){
-                        spItems += '<li><a data-val='+ sp.serviceProviderId +' href="#">' + sp.serviceProvider.replace("@carbon.super","") +'</a></li>'
-                        spIds.push(" "+sp.serviceProviderId);
-                        loadedSps.push(sp.serviceProviderId);
-                      }
-                    }
+              conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
+              conf["provider-conf"]["provider-name"] = "operator";
+              //conf.operator =  "("+clickedOperator+")";
+              if (operatorSelected) {
+                  conf.operatorName =  clickedOperator;
+              } else {
+                  conf.operatorName =  "("+clickedOperator+")";
+              }
+              selectedOperator = conf.operatorName;
 
-                    $("#dropdown-sp").html(spItems);
+                $.ajax({
+                    url: gadgetLocation + '/gadget-controller.jag?action=getData',
+                    method: "POST",
+                    data: JSON.stringify(conf),
+                    contentType: "application/json",
+                    async: false,
+                    success: function (data) {
+                        $("#dropdown-sp").empty();
+                        var spItems = '';
+                        var spIds = [];
+                        var loadedSps = [];
+                        spIds.push(serviceProviderId);
+                        spItems += '<li><a data-val="0" href="#">All</a></li>';
+                        for ( var i =0 ; i < data.length; i++) {
+                            var sp = data[i];
+                            if($.inArray(sp.serviceProviderId, loadedSps)<0){
+                            spItems += '<li><a data-val='+ sp.serviceProviderId +' href="#">' + sp.serviceProvider.replace("@carbon.super","") +'</a></li>'
+                            spIds.push(" "+sp.serviceProviderId);
+                            loadedSps.push(sp.serviceProviderId);
+                          }
+                        }
 
-                    $("#button-sp").text('All');
-                    $("#button-sp").val('<li><a data-val="0" href="#">All</a></li>');
-                    loadApp(spIds);
-                    $("#dropdown-sp li a").click(function(){
+                        $("#dropdown-sp").html(spItems);
 
-                        $("#button-sp").text($(this).text());
-                        $("#button-sp").append('<span class="caret"></span>');
-                        $("#button-sp").val($(this).text());
-                        // var clickedSP = [];
-                        // clickedSP.push($(this).data('val'));
-                        spIds = $(this).data('val');
-                        serviceProviderId = spIds;
+                        $("#button-sp").text('All');
+                        $("#button-sp").val('<li><a data-val="0" href="#">All</a></li>');
                         loadApp(spIds);
-                    });
+                        $("#dropdown-sp li a").click(function(){
+
+                            $("#button-sp").text($(this).text());
+                            $("#button-sp").append('<span class="caret"></span>');
+                            $("#button-sp").val($(this).text());
+                            // var clickedSP = [];
+                            // clickedSP.push($(this).data('val'));
+                            spIds = $(this).data('val');
+                            serviceProviderId = spIds;
+                            loadApp(spIds);
+                        });
 
 
-                }
-            });
+                    }
+                });
         }
 
         function loadApp (sps){
@@ -374,7 +386,7 @@ $(function () {
       function loadApi (apps){
       conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
       conf["provider-conf"]["provider-name"] = "app";
-      conf.applicationId = "("+apps+")";;
+      conf.applicationId = "("+apps+")";
       apiId = 0;
       apiN ='';
       $.ajax({
