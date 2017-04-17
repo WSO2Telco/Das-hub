@@ -172,6 +172,7 @@ var getConfig, validate, getMode, getSchema, getData, registerCallBackforPush;
                 "start": 0,
                 "count": limit
             };
+            var x = stringify(filter);
             result = connector.search(loggedInUser, tableName, stringify(filter)).getMessage();
         } else {
             var from = JS_MIN_VALUE;
