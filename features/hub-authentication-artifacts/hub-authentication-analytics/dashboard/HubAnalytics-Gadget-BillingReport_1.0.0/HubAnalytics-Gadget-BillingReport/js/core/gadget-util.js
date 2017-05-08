@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 var getGadgetLocation = function (callback) {
-    var gadgetLocation = "/portal/store/carbon.super/fs/gadget/HubAnalytics-Gadget-ResponseTimeReport";
+    var gadgetLocation = "/portal/store/carbon.super/fs/gadget/HubAnalytics-Gadget-BillingReport";
 	var PATH_SEPERATOR = "/";
     if (gadgetLocation.search("store") != -1) {
         wso2.gadgets.identity.getTenantDomain(function (tenantDomain) {
