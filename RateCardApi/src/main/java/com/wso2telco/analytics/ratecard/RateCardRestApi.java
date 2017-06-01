@@ -69,7 +69,7 @@ public class RateCardRestApi {
                             .entity("Please enter your API Name")
                             .build();
                 }
-                 else if(category==null|| category.isEmpty())
+                else if(category==null|| category.isEmpty())
                 {
                     return  Response.status(Response.Status.NO_CONTENT)
                             .entity("Please enter your Category")
@@ -84,9 +84,18 @@ public class RateCardRestApi {
                 else {
                     chargeRateObj = (ChargeRate) rateCardObject.getNBRateCard(operationId, applicationId, api, category,
                             subCategory);
+                    if(chargeRateObj == null)
+                    {
+                        return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                                .entity("Please enter correct Query param values")
+                                .build();
+                    }
                 }
             } catch (Exception e) {
                 log.error("Couldn't get the NorthBound RateCard Details"+e.getMessage());
+                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Please enter correct Query param values")
+                        .build();
             }
         }
         if(directions.equalsIgnoreCase(SB_DIRECTION))
@@ -126,18 +135,36 @@ public class RateCardRestApi {
                 {
                     chargeRateObj = (ChargeRate)rateCardObject.getSBRateCard(operator,operation,applicationId,category,
                             subCategory);
+                    if(chargeRateObj == null)
+                    {
+                        return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                                .entity("Please enter correct Query param values")
+                                .build();
+                    }
                 }
             } catch (Exception e) {
                 log.error("Couldn't get the SouthBound RateCard Details"+e.getMessage());
+                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Please enter correct Query param values")
+                        .build();
             }
         }
         try {
             jsonResponse = gson.toJson(chargeRateObj);
-            return Response.status(200).entity(jsonResponse).build();
+            if(jsonResponse == null || jsonResponse == "") {
+                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Please enter correct Query param values")
+                        .build();
+
+            }
+            else
+            {
+                return Response.status(200).entity(jsonResponse).build();
+            }
         }
         catch (Exception ex)
         {
-            return Response.status(Response.Status.BAD_REQUEST).entity(jsonResponse).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity("Please enter correct Query param values").build();
         }
     }
 }
