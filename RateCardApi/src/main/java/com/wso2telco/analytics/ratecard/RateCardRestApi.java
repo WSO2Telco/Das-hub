@@ -44,7 +44,7 @@ public class RateCardRestApi {
         ChargeRate chargeRateObj = null;
         if(directions == null)
         {
-            return Response.status(Response.Status.NO_CONTENT)
+            return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Please enter your direction")
                     .build();
         }
@@ -53,32 +53,32 @@ public class RateCardRestApi {
                 if(operationId == null || operationId.isEmpty())
                 {
 
-                    return  Response.status(Response.Status.NO_CONTENT)
+                    return  Response.status(Response.Status.BAD_REQUEST)
                             .entity("Please enter your operationId")
                             .build();
                 }
                 else if(applicationId==null|| applicationId.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your applicationId")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your applicationId")
                             .build();
                 }
                 else if(api==null||api.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your API Name")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your API Name")
                             .build();
                 }
                 else if(category==null|| category.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your Category")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your Category")
                             .build();
                 }
                 else if(subCategory==null || subCategory.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your SubCategory")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your SubCategory")
                             .build();
                 }
                 else {
@@ -86,15 +86,15 @@ public class RateCardRestApi {
                             subCategory);
                     if(chargeRateObj == null)
                     {
-                        return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                                .entity("Please enter correct Query param values")
+                        return  Response.status(Response.Status.NO_CONTENT)
+                                .entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values to get a result")
                                 .build();
                     }
                 }
             } catch (Exception e) {
-                log.error("Couldn't get the NorthBound RateCard Details"+e.getMessage());
-                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity("Please enter correct Query param values")
+                log.error("Couldn't get the NorthBound RateCard Details "+e.getMessage());
+                return  Response.status(Response.Status.NO_CONTENT)
+                        .entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values")
                         .build();
             }
         }
@@ -103,32 +103,32 @@ public class RateCardRestApi {
             try {
                 if(operator == null ||operator.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your Operator Name")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your Operator Name")
                             .build();
                 }
                 else if(operation == null||operation.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your Operation")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your Operation")
                             .build();
                 }
                 else if(applicationId==null|| applicationId.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your applicationId")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your applicationId")
                             .build();
                 }
                 else if(category==null|| category.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your Category")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your Category")
                             .build();
                 }
                 else if(subCategory==null || subCategory.isEmpty())
                 {
-                    return  Response.status(Response.Status.NO_CONTENT)
-                            .entity("Please enter your SubCategory")
+                    return  Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Response.Status.BAD_REQUEST.getStatusCode()+" Please enter your SubCategory")
                             .build();
                 }
                 else
@@ -137,25 +137,24 @@ public class RateCardRestApi {
                             subCategory);
                     if(chargeRateObj == null)
                     {
-                        return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                                .entity("Please enter correct Query param values")
+                        return  Response.status(Response.Status.NO_CONTENT)
+                                .entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values")
                                 .build();
                     }
                 }
             } catch (Exception e) {
                 log.error("Couldn't get the SouthBound RateCard Details"+e.getMessage());
-                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity("Please enter correct Query param values")
+                return  Response.status(Response.Status.NO_CONTENT)
+                        .entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values")
                         .build();
             }
         }
         try {
             jsonResponse = gson.toJson(chargeRateObj);
             if(jsonResponse == null || jsonResponse == "") {
-                return  Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity("Please enter correct Query param values")
+                return  Response.status(Response.Status.NO_CONTENT)
+                        .entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values")
                         .build();
-
             }
             else
             {
@@ -164,7 +163,7 @@ public class RateCardRestApi {
         }
         catch (Exception ex)
         {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Please enter correct Query param values").build();
+            return Response.status(Response.Status.NO_CONTENT).entity(Response.Status.NO_CONTENT.getStatusCode()+" Please enter correct Query param values").build();
         }
     }
 }

@@ -1,0 +1,72 @@
+READ_ME
+
+How to call webservice
+
+Path params required
+ northBound
+ southBound
+
+URL with path param
+ https://<IP_ADDRESS>:<PORT>/RateCardApi/service/ratecardapi/{direction}
+
+If northbound related ratecard values are requested, URL with path param must be as follows
+ https://<IP_ADDRESS>:<PORT>/RateCardApi/service/ratecardapi/northBound
+
+If southbound related ratecard values are requested, URL with path param must be as follows 
+ https://<IP_ADDRESS>:<PORT>/RateCardApi/service/ratecardapi/southBound
+
+Request type
+ GET
+
+Query params required for northBound Ratecard request
+
+ operationId
+ applicationId
+ api
+ category
+ subCategory
+
+
+Query params required for southBound Ratecard request
+
+ operator
+ operation
+ applicationId
+ category
+ subCategory
+
+Sample Request format
+
+You can call this webservice through POSTMAN or through browser
+
+GET- northBound
+
+Url -
+
+https://172.17.42.1:9444/RateCardApi/service/ratecardapi/northBound?         operationId=sendsms&applicationId=1&api=smsmessaging&category=349&subCategory=651
+
+Response
+
+{
+
+"name":"SM1",
+"currency":"Rs",
+"type":"CONSTANT",
+"categories":
+     {
+       "349":
+          {
+           "651":"100.0"
+          } 
+     },
+"taxList":["VAT","ABC"],
+"isDefault":true,
+"categoryBasedVal":true
+
+}
+
+GET - southBound
+
+url-
+
+https://172.17.42.1:9444/RateCardApi/service/ratecardapi/southBound?operator=dialog&operation=sendsms&applicationId=1&category=349&subCategory=651
