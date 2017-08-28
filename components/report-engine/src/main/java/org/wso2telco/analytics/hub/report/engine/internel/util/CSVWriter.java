@@ -19,6 +19,7 @@
 package org.wso2telco.analytics.hub.report.engine.internel.util;
 
 import org.wso2.carbon.analytics.datasource.commons.Record;
+import org.wso2telco.analytics.hub.report.engine.internel.model.ResponseTimeRangeData;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,11 +28,120 @@ import java.io.IOException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CSVWriter {
 
     public static void writeCSV(List<Record> records, int bufSize, String filePath,
                                 Map<String, String> dataColumns, List<String> columnHeads) throws IOException {
+
+        StringBuilder sb = new StringBuilder();
+
+        File file = deleteIfExists(filePath);
+
+        file.getParentFile().mkdirs();
+        FileWriter writer = new FileWriter(file, true);
+        BufferedWriter bufferedWriter = new BufferedWriter(writer, bufSize);
+
+        if (records.isEmpty()) {
+            bufferedWriter.write("No valid data found");
+        } else {
+            for (String columnName : columnHeads) {
+                if (sb.length() > 0) {
+                    sb.append(',');
+                }
+                sb.append(columnName);
+            }
+
+            sb.append(System.getProperty("line.separator"));
+            bufferedWriter.write(sb.toString());
+
+            for (Record record : records) {
+                sb = new StringBuilder();
+
+                for (String key : dataColumns.keySet()) {
+                    if (sb.length() > 0) {
+                        sb.append(',');
+                    }
+                    if (dataColumns.get(key).equals("date")) {
+                        Date date = new Date(Long.parseLong(record.getValues().get(key).toString()));
+                        Format format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        sb.append(format.format(date));
+                    } else {
+                        sb.append(clearSpecialCharacters(record.getValues().get(key)));
+                    }
+                }
+
+                sb.append(System.getProperty("line.separator"));
+
+                bufferedWriter.write(sb.toString());
+            }
+        }
+        bufferedWriter.flush();
+        bufferedWriter.close();
+    }
+
+    private static File deleteIfExists(String filePath) {
+        File file = new File(filePath);
+        if (file.exists()) {
+            file.delete();
+        }
+        return file;
+    }
+
+    public static void writeTransactionCSV(List<Record> records, int bufSize, String filePath,
+                                           Map<String, String> dataColumns, List<String> columnHeads) throws IOException {
+
+        StringBuilder sb = new StringBuilder();
+
+        File file = deleteIfExists(filePath);
+
+        file.getParentFile().mkdirs();
+        FileWriter writer = new FileWriter(file, true);
+        BufferedWriter bufferedWriter = new BufferedWriter(writer, bufSize);
+
+        if (records.isEmpty()) {
+            bufferedWriter.write("No valid data found");
+        } else {
+
+            for (String columnName : columnHeads) {
+                if (sb.length() > 0) {
+                    sb.append(',');
+                }
+                sb.append(columnName);
+            }
+
+            sb.append(System.getProperty("line.separator"));
+            bufferedWriter.write(sb.toString());
+            for (Record record : records) {
+                sb = new StringBuilder();
+
+                for (String key : dataColumns.keySet()) {
+                    if (sb.length() > 0) {
+                        sb.append(',');
+                    }
+                    if ("serviceProvider".equals(key)) {
+                        sb.append(record.getValues().get(key).toString().replaceAll("@carbon.super", ""));
+                    } else if (dataColumns.get(key).equals("date")) {
+                        Date date = new Date(Long.parseLong(record.getValues().get(key).toString()));
+                        Format format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        sb.append(format.format(date));
+                    } else {
+                        sb.append(clearSpecialCharacters(record.getValues().get(key)));
+                    }
+                }
+
+                sb.append(System.getProperty("line.separator"));
+
+                bufferedWriter.write(sb.toString());
+            }
+        }
+        bufferedWriter.flush();
+        bufferedWriter.close();
+    }
+
+    public static void writeResponseTImeCSV(List<Record> records, int bufSize, String filePath,
+                                            Map<String, String> dataColumns, List<String> columnHeads) throws IOException {
 
         File file = new File(filePath);
         file.getParentFile().mkdirs();
@@ -48,28 +158,35 @@ public class CSVWriter {
         }
 
         sb.append(System.getProperty("line.separator"));
-        bufferedWriter.write(sb.toString());
 
+        List<ResponseTimeRangeData> responseTimeRangeDataList = new ArrayList<>();
         for (Record record : records) {
-            sb = new StringBuilder();
 
-            for (String key : dataColumns.keySet()) {
-                if (sb.length() > 0) {
-                    sb.append(',');
-                }
-                if (dataColumns.get(key).equals("date")) {
-                    Date date = new Date(Long.parseLong(record.getValues().get(key).toString()));
-                    Format format = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
-                    sb.append(format.format(date));
-                } else {
-                    sb.append(clearSpecialCharacters(record.getValues().get(key)));
-                }
-            }
-
-            sb.append(System.getProperty("line.separator"));
-
-            bufferedWriter.write(sb.toString());
+            ResponseTimeRangeData responseTimeRangeData = new ResponseTimeRangeData();
+            responseTimeRangeData.setCount((Integer) record.getValue("totalResponseCount"));
+            responseTimeRangeData.setRange(clearSpecialCharacters(record.getValue("responseTimeRange")));
+            responseTimeRangeDataList.add(responseTimeRangeData);
         }
+
+        Map<String, Integer> summedMap = responseTimeRangeDataList.stream().collect(
+                Collectors.groupingBy(ResponseTimeRangeData::getRange, Collectors.summingInt
+                        (ResponseTimeRangeData::getCount)));
+
+        LinkedHashMap<String, Integer> sortedMap = summedMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+
+        Iterator<Map.Entry<String, Integer>> iterator = sortedMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+
+            Map.Entry<String, Integer> next = iterator.next();
+            String key = next.getKey();
+            Integer value = next.getValue();
+
+            sb.append(key).append(",").append(value).append(System.getProperty("line.separator"));
+        }
+
+        bufferedWriter.write(sb.toString());
         bufferedWriter.flush();
         bufferedWriter.close();
     }
@@ -113,147 +230,63 @@ public class CSVWriter {
         } else {
             bufferedWriter.write("No data available for this date range");
         }
+
         bufferedWriter.flush();
         bufferedWriter.close();
 
     }
 
-    public static void writeBillingCSV(List<Record> records, int bufSize, String filePath, String table) throws
-			IOException {
+    public static void writeErrorCSV(List<Record> records, int bufSize, String filePath, Map<String, String> dataColumns,
+                                     List<String> columnHeads) throws IOException {
+
         File file = new File(filePath);
         file.getParentFile().mkdirs();
         FileWriter writer = new FileWriter(file, true);
         BufferedWriter bufferedWriter = new BufferedWriter(writer, bufSize);
         StringBuilder sb = new StringBuilder();
 
-        if (table.equalsIgnoreCase("ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_NORTHBOUND_REPORT_SUMMARY_PER_DAY")) {
-            sb.append("API");
-            sb.append(',');
-            sb.append("SP Name");
-            sb.append(',');
-            sb.append("Application Name");
-            sb.append(',');
-            sb.append("Event Type");
-            sb.append(',');
-            sb.append("Purchase Category Code");
-            sb.append(',');
-            sb.append("Total amount");
-            sb.append(',');
-            sb.append("SP Revenue");
-            sb.append(',');
-            sb.append("Charge");
-            sb.append(',');
-            sb.append("Day");
-            sb.append(System.getProperty("line.separator"));
-
-            if (records.size() > 0) {
-                for (Record record : records) {
-
-                    String api = getValue(record.getValues().get("api"));
-                    String spName = getValue(record.getValues().get("spName"));
-                    String applicationName = getValue(record.getValues().get("applicationName"));
-                    String eventType = getValue(record.getValues().get("eventType"));
-                    String purchaseCategoryCode = getValue(record.getValues().get("category"));
-                    String sum_totalAmount = getValue(record.getValues().get("sum_totalAmount"));
-                    String spcommission = getValue(record.getValues().get("spCommission"));
-                    String revShare_hub = getValue(record.getValues().get("revShare_hub"));
-                    String _timestamp = new Date(new Long(record.getValues().get("eventTimeStamp").toString()))
-							.toString();
-
-                    sb.append(api);
-                    sb.append(',');
-                    sb.append(spName);
-                    sb.append(',');
-                    sb.append(applicationName);
-                    sb.append(',');
-                    sb.append(eventType);
-                    sb.append(',');
-                    sb.append(purchaseCategoryCode);
-                    sb.append(',');
-                    sb.append(sum_totalAmount);
-                    sb.append(',');
-                    sb.append(spcommission);
-                    sb.append(',');
-                    sb.append(revShare_hub);
-                    sb.append(',');
-                    sb.append(_timestamp);
-                    sb.append(System.getProperty("line.separator"));
-                }
-            }
-            bufferedWriter.write(sb.toString());
-        } else if (table.equalsIgnoreCase("ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_SOUTHBOUND_REPORT_SUMMARY_PER_DAY")) {
-            sb.append("API");
-            sb.append(',');
-            sb.append("SP Name");
-            sb.append(',');
-            sb.append("Operator Name");
-            sb.append(',');
-            sb.append("Application Name");
-            sb.append(',');
-            sb.append("Event Type");
-            sb.append(',');
-            sb.append("Purchase Category Code");
-            sb.append(',');
-            sb.append("Total amount");
-            sb.append(',');
-            sb.append("MNO Share");
-            sb.append(',');
-            sb.append("SP Share");
-            sb.append(',');
-            sb.append("HUB Share");
-            sb.append(',');
-            sb.append("Day");
-            sb.append(System.getProperty("line.separator"));
-
-            if (records.size() > 0) {
-                for (Record record : records) {
-
-                    String api = getValue(record.getValues().get("api"));
-                    String spName = getValue(record.getValues().get("spName"));
-                    String operatorName = getValue(record.getValues().get("operatorName"));
-                    String applicationName = getValue(record.getValues().get("applicationName"));
-                    String eventType = getValue(record.getValues().get("eventType"));
-                    String purchaseCategoryCode = getValue(record.getValues().get("category"));
-                    String sum_totalAmount = getValue(record.getValues().get("sum_totalAmount"));
-                    String mnoShare = record.getValues().get("revShare_opco") != null ? getValue(record.getValues()
-							.get("revShare_opco")) : null;
-                    String spShare = getValue(record.getValues().get("revShare_sp"));
-                    String hubShare = getValue(record.getValues().get("revShare_hub"));
-                    String _timestamp = new Date(new Long(record.getValues().get("eventTimeStamp").toString())).toString();
-
-                    sb.append(api);
-                    sb.append(',');
-                    sb.append(spName);
-                    sb.append(',');
-                    sb.append(operatorName);
-                    sb.append(',');
-                    sb.append(applicationName);
-                    sb.append(',');
-                    sb.append(eventType);
-                    sb.append(',');
-                    sb.append(purchaseCategoryCode);
-                    sb.append(',');
-                    sb.append(sum_totalAmount);
-                    sb.append(',');
-                    sb.append(mnoShare);
-                    sb.append(',');
-                    sb.append(spShare);
-                    sb.append(',');
-                    sb.append(hubShare);
-                    sb.append(',');
-                    sb.append(_timestamp);
-                    sb.append(System.getProperty("line.separator"));
-                }
-            }
-            bufferedWriter.write(sb.toString());
+        if (records.isEmpty()) {
+            bufferedWriter.write("No valid data found");
         } else {
-            bufferedWriter.write("No data available for this date range");
+            for (String columnName : columnHeads) {
+                if (sb.length() > 0) {
+                    sb.append(',');
+                }
+                sb.append(columnName);
+            }
+            sb.append(System.getProperty("line.separator"));
+            bufferedWriter.write(sb.toString());
+
+            for (Record record : records) {
+                sb = new StringBuilder();
+
+                for (String key : dataColumns.keySet()) {
+                    if (sb.length() > 0) {
+                        sb.append(',');
+                    }
+                    if ("_timestamp".equalsIgnoreCase(key)) {
+                        sb.append(record.getValue("year"))
+                                .append("/")
+                                .append(record.getValue("month"))
+                                .append("/").append(record.getValue("day"));
+                    } else {
+                        Object value = record.getValue(key);
+                        if (value == null) {
+                            value = "";
+                        }
+                        sb.append(clearSpecialCharacters(value));
+                    }
+                }
+                sb.append(System.getProperty("line.separator"));
+                bufferedWriter.write(sb.toString());
+            }
         }
 
         bufferedWriter.flush();
         bufferedWriter.close();
-
+        writer.close();
     }
+
 
     private static String getValue(Object val) {
 

@@ -133,20 +133,20 @@
         								</goals>
         							</pluginExecutionFilter>
         							<action>
-        								<ignore></ignore>
+        								<ignore />
         							</action>
         						</pluginExecution>
         						<pluginExecution>
         							<pluginExecutionFilter>
-        								<groupId></groupId>
-        								<artifactId></artifactId>
+        								<groupId />
+        								<artifactId />
         								<versionRange>[,)</versionRange>
         								<goals>
-        									<goal></goal>
+        									<goal />
         								</goals>
         							</pluginExecutionFilter>
         							<action>
-        								<ignore></ignore>
+        								<ignore />
         							</action>
         						</pluginExecution>
         					</pluginExecutions>

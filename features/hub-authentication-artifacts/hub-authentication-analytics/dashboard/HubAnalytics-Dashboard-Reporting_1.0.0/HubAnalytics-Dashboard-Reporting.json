@@ -15,7 +15,7 @@
     },
     "pages": [{
             "id": "traffic-report",
-            "title": "Traffic Report",
+            "title": "Traffic",
             "isanon": false,
             "content": {
                 "default": {
@@ -23,9 +23,9 @@
                         "id": "HubAnalytics-Gadget-TrafficReport-0",
                         "content": {
                             "id": "HubAnalytics-Gadget-TrafficReport",
-                            "title": "Traffic Report",
+                            "title": "Traffic",
                             "type": "gadget",
-                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-TrafficReport/thumbnail.png",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
                             "data": {
                                 "url": "fs://gadget/HubAnalytics-Gadget-TrafficReport/gadget.xml"
                             },
@@ -72,12 +72,13 @@
                             "operatoradmin"
                         ]
                     }
-                }
+                },
+                "fluidLayout": false
             }
         },
         {
             "id": "transaction-report",
-            "title": "Transaction Report",
+            "title": "Transaction",
             "isanon": false,
             "content": {
                 "default": {
@@ -85,9 +86,9 @@
                         "id": "HubAnalytics-Gadget-TransactionReport-0",
                         "content": {
                             "id": "HubAnalytics-Gadget-TransactionReport",
-                            "title": "Transaction Report",
+                            "title": "Transaction",
                             "type": "gadget",
-                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-TransactionReport/thumbnail.png",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
                             "data": {
                                 "url": "fs://gadget/HubAnalytics-Gadget-TransactionReport/gadget.xml"
                             },
@@ -134,12 +135,13 @@
                             "operatoradmin"
                         ]
                     }
-                }
+                },
+                "fluidLayout": false
             }
         },
         {
             "id": "response-time-report",
-            "title": "Response Time Report",
+            "title": "Response Time",
             "isanon": false,
             "content": {
                 "default": {
@@ -147,9 +149,9 @@
                         "id": "HubAnalytics-Gadget-ResponseTimeReport-0",
                         "content": {
                             "id": "HubAnalytics-Gadget-ResponseTimeReport",
-                            "title": "Response Time Report",
+                            "title": "Response Time",
                             "type": "gadget",
-                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-ResponseTimeReport/thumbnail.png",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
                             "data": {
                                 "url": "fs://gadget/HubAnalytics-Gadget-ResponseTimeReport/gadget.xml"
                             },
@@ -196,27 +198,92 @@
                             "operatoradmin"
                         ]
                     }
-                }
+                },
+                "fluidLayout": false
             }
         },
         {
             "id": "customer-care-report",
             "title": "Customer Care Report",
-            "isanon": false,
             "content": {
                 "default": {
                     "e7024e0b9d62d7266b1b5e3ac3a0caa9": [{
                         "id": "HubAnalytics-Gadget-CustomerCareReport-0",
                         "content": {
                             "id": "HubAnalytics-Gadget-CustomerCareReport",
-                            "title": "Dev Support Report",
+                            "title": "Dev Support",
                             "type": "gadget",
-                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-CustomerCareReport/thumbnail.png",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
                             "data": {
                                 "url": "fs://gadget/HubAnalytics-Gadget-CustomerCareReport/gadget.xml"
                             },
                             "styles": {
                                 "title": "HubAnalytics-Gadget-CustomerCareReport",
+                                "no_heading": true,
+                                "hide_gadget": false,
+                                "titlePosition": "left"
+                            },
+                            "options": {
+                                "refreshInterval": {
+                                    "type": "STRING",
+                                    "title": "Refresh Interval",
+                                    "value": "1000000",
+                                    "options": [
+
+                                    ],
+                                    "required": false
+                                }
+                            },
+                            "locale_titles": {
+
+                            }
+                        }
+                    }]
+                },
+                "anon": {
+
+                }
+            },
+            "views": {
+                "content": {
+                    "default": {
+                        "blocks": [{
+                            "id": "e7024e0b9d62d7266b1b5e3ac3a0caa9",
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 19,
+                            "banner": false
+                        }],
+                        "name": "Default View",
+                        "roles": [
+                            "admin",
+                            "customercare",
+                            "operatoradmin"
+                        ]
+                    }
+                },
+                "fluidLayout": false
+            }
+        },
+        {
+            "id": "billing-report",
+            "title": "Billing",
+            "isanon": false,
+            "content": {
+                "default": {
+                    "61197f94e6a0445e1279303cb8c46c40": [{
+                        "id": "HubAnalytics-Gadget-BillingReport-0",
+                        "content": {
+                            "id": "HubAnalytics-Gadget-BillingReport",
+                            "title": "Billing",
+                            "type": "gadget",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
+                            "data": {
+                                "url": "fs://gadget/HubAnalytics-Gadget-BillingReport/gadget.xml"
+                            },
+                            "styles": {
+                                "title": "HubAnalytics-Gadget-BillingReport",
                                 "borders": true
                             },
                             "options": {
@@ -238,49 +305,13 @@
                 },
                 "anon": {
 
-                },
-                "view0": {
-
                 }
             },
             "views": {
                 "content": {
                     "default": {
                         "blocks": [{
-                            "id": "e7024e0b9d62d7266b1b5e3ac3a0caa9",
-                            "x": 0,
-                            "y": 0,
-                            "width": 12,
-                            "height": 19,
-                            "banner": false
-                        }],
-                        "name": "Default View",
-                        "roles": [
-                            "admin",
-                            "customercare",
-                            "operatoradmin"
-                        ]
-                    },
-                    "view0": {
-                        "blocks": [
-
-                        ],
-                        "name": "View 0",
-                        "roles": [
-                            "Internal/everyone"
-                        ]
-                    }
-                }
-            }
-        },
-        {
-            "id": "search",
-            "title": "Search",
-            "views": {
-                "content": {
-                    "default": {
-                        "blocks": [{
-                            "id": "053b3cf22125880591148f343927790d",
+                            "id": "61197f94e6a0445e1279303cb8c46c40",
                             "x": 0,
                             "y": 0,
                             "width": 12,
@@ -290,95 +321,120 @@
                         "name": "Default View",
                         "roles": [
                             "admin",
-                            "customercare"
+                            "Internal/subscriber",
+                            "operatoradmin"
                         ]
                     }
                 },
                 "fluidLayout": false
-            },
+            }
+        },
+        {
+            "id": "revenue-report",
+            "title": "Revenue",
+            "isanon": false,
             "content": {
                 "default": {
-                    "053b3cf22125880591148f343927790d": [{
-                        "id": "HubAnalytics-Gadget-Search-0",
+                    "61197f94e6a0445e1279303cb8c46c40": [{
+                        "id": "HubAnalytics-Gadget-RevenueReport-0",
                         "content": {
-                            "id": "HubAnalytics-Gadget-Search",
-                            "title": "HubAnalytics-Gadget-Search",
+                            "id": "HubAnalytics-Gadget-RevenueReport",
+                            "title": "Revenue",
                             "type": "gadget",
-                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Search/thumbnail.png",
+                            "thumbnail": "fs://gadget/HubAnalytics-Gadget-Commons/thumbnail.png",
                             "data": {
-                                "url": "fs://gadget/HubAnalytics-Gadget-Search/gadget.xml"
+                                "url": "fs://gadget/HubAnalytics-Gadget-RevenueReport/gadget.xml"
                             },
-                            "isDownloadable": true,
-                            "isDeletable": true,
-                            "storeType": "fs",
                             "styles": {
-                                "no_heading": true,
-                                "hide_gadget": false,
-                                "titlePosition": "left",
-                                "title": "HubAnalytics-Gadget-Search"
+                                "title": "HubAnalytics-Gadget-RevenueReport",
+                                "borders": true
                             },
                             "options": {
                                 "refreshInterval": {
                                     "type": "STRING",
                                     "title": "Refresh Interval",
                                     "value": "1000000",
-                                    "options": [],
+                                    "options": [
+
+                                    ],
                                     "required": false
                                 }
                             },
                             "locale_titles": {
-                                "en": "HubAnalytics-Gadget-Search"
-                            },
-                            "settings": {
-                                "priority": "5",
-                                "timeoutInterval": "60000"
+
                             }
                         }
                     }]
+                },
+                "anon": {
+
                 }
+            },
+            "views": {
+                "content": {
+                    "default": {
+                        "blocks": [{
+                            "id": "61197f94e6a0445e1279303cb8c46c40",
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 12,
+                            "banner": false
+                        }],
+                        "name": "Default View",
+                        "roles": [
+                            "admin",
+                            "Internal/subscriber",
+                            "operatoradmin"
+                        ]
+                    }
+                },
+                "fluidLayout": false
             }
         }
     ],
     "menu": [{
             "id": "traffic-report",
-            "isanon": false,
             "ishidden": false,
-            "title": "Traffic Report",
+            "title": "Traffic",
             "subordinates": [
 
             ]
         },
         {
             "id": "transaction-report",
-            "isanon": false,
             "ishidden": false,
-            "title": "Transaction Report",
+            "title": "Transaction",
             "subordinates": [
 
             ]
         },
         {
             "id": "response-time-report",
-            "isanon": false,
             "ishidden": false,
-            "title": "Response Time Report",
+            "title": "Response Time",
             "subordinates": [
 
             ]
         },
         {
             "id": "customer-care-report",
-            "isanon": false,
             "ishidden": false,
-            "title": "Dev Support Report",
+            "title": "Dev Support",
             "subordinates": [
 
             ]
         },
         {
-            "id": "search",
+            "id": "billing-report",
             "ishidden": false,
-            "title": "Search",
+            "title": "Billing",
+            "subordinates": []
+        },
+        {
+            "id": "revenue-report",
+            "ishidden": false,
+            "title": "Revenue",
             "subordinates": []
         }
     ],

@@ -19,7 +19,7 @@ $(function () {
     var schema;
     var pref = new gadgets.Prefs();
 
-    var operatorName = "all", serviceProviderId = 0, apiId = 0, applicationId = 0;
+    var operatorName = "all", serviceProviderId = 0, apiId = 0, applicationId = 0, application="0";
     var loggedInUser;
     var selectedOperator;
     var operatorSelected = false;
@@ -41,6 +41,7 @@ $(function () {
                 conf.serviceProvider = serviceProviderId;
                 conf.api = apiId;
                 conf.applicationName = applicationId;
+				conf.application=application;
 
                 // values loads from gadget-common.js
                 conf.dateStart = dateStart();
@@ -74,6 +75,19 @@ $(function () {
 
                 // hide the operator / serviceProvider drop-down according to logged in user
                 hideDropDown(loggedInUser);
+                if (!(loggedInUser.isAdmin) && (loggedInUser.isOperatorAdmin || loggedInUser.isCustomerCareUser)) {
+                    $("#appContainer").removeClass("col-top-pad");
+            
+                    //conf.operatorName = operatorName;
+                } else if (!(loggedInUser.isAdmin) && loggedInUser.isServiceProvider) {
+                    $("#appContainer").removeClass("col-top-pad");
+                    $("#apiContainer").removeClass("col-top-pad");
+                }
+            },
+            complete : function (xhr, textStatus) {
+                if (xhr.status == "403") {
+                    window.top.location.reload(false);
+                }
             }
         });
     };
@@ -91,6 +105,22 @@ $(function () {
                 providerData = data;
             }
         });
+
+        if(providerData != '') {
+            $("#generateCSV").show();
+            if(loggedInUser.isAdmin){
+                $("#tableSelect").show();
+            }
+
+        } else {
+            $("#generateCSV").hide();
+            $("#tableSelect").hide();
+
+            $("#nodata_info").html('<div id="success-message" class="alert alert-info"><strong>* No matching records found.</strong> ' +
+                '</div>');
+            $('#success-message').fadeIn().delay(1000).fadeOut();
+
+        }
         return providerData;
     };
 
@@ -102,14 +132,121 @@ $(function () {
     };
 
     $("#button-search").click(function() {
-        $("#canvas").html("");
-        $("#canvas2").html("");
+        getFilterdResult();
+    });
+
+     function getFilterdResult() {
+         getLoggedInUser();
+         $("#canvas").html("");
+         $("#showCSV").hide();
         getGadgetLocation(function (gadget_Location) {
             gadgetLocation = gadget_Location;
             init();
             drawGadget(getProviderData());
         });
+    };
+
+    $("#btnLastDay").click(function() {
+        getFilterdResult();
     });
+
+      $("#btnLastMonth").click(function() {
+          getFilterdResult();
+    });
+
+      $("#btnLastYear").click(function() {
+        getFilterdResult();
+    });
+
+    $('#btnCustomRange').on('apply.daterangepicker', function(ev, picker) {
+      getFilterdResult();
+    });
+
+    $("#button-generate-tr").click(function () {
+        getLoggedInUser();
+        getGadgetLocation(function (gadget_Location) {
+            gadgetLocation = gadget_Location;
+            $("#output").html("");
+            $("#nodata_info").html("");
+            if (operatorSelected) {
+                conf.operatorName = selectedOperator;
+            } else {
+                conf.operatorName = operatorName;
+            }
+            conf.serviceProvider = serviceProviderId;
+            conf.api = apiId;
+            conf.applicationName = applicationId;
+            conf.applicationf=$("#button-app").text();
+			conf.operatorf=$("#button-operator").text();
+			conf.spf= $("#button-sp").text();
+			conf.apif=$("#button-api").text();
+
+            conf.dateStart = moment(moment($("#reportrange").text().split("-")[0]).format("MMMM D, YYYY hh:mm A")).valueOf();
+            conf.dateEnd = moment(moment($("#reportrange").text().split("-")[1]).format("MMMM D, YYYY hh:mm A")).valueOf();
+
+            conf[PROVIDER_CONF][TABLE_NAME] = STREAMS.RESPONSE_TIME_SUMMERY;
+
+            var btn = $("#button-generate-tr");
+            btn.prop('disabled', true);
+            setTimeout(function () {
+                btn.prop('disabled', false);
+            }, 3000);
+
+            $.ajax({
+                url: gadgetLocation + '/gadget-controller.jag?action=generateCSV',
+                method: METHOD.POST,
+                data: JSON.stringify(conf),
+                contentType: CONTENT_TYPE,
+                async: false,
+                success: function (data) {
+                    $("#showCSV").show();
+                    $("#list-available-report").show();
+                    $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
+                        + "Please refresh the traffic report"
+                        + '</div>' + $("#output").html());
+                    $('#success-message').fadeIn().delay(2000).fadeOut();
+                }
+            });
+        });
+    });
+
+
+    $("#list-available-report").click(function () {
+        getLoggedInUser();
+        $("#output").html("");
+        $("#nodata_info").html("");
+
+        getGadgetLocation(function (gadget_Location) {
+            gadgetLocation = gadget_Location;
+            $.ajax({
+                url: gadgetLocation + '/gadget-controller.jag?action=available',
+                method: METHOD.POST,
+                data: JSON.stringify(conf),
+                contentType: CONTENT_TYPE,
+                async: false,
+                dataType: 'json',
+                success: function (data) {
+                    $("#output").html("<ul class = 'list-group'>")
+                    for (var i = 0; i < data.length; i++) {
+                        $("#output").html($("#output").html() + "<li class = 'list-group-item'>" +
+                            " <span class='btn-label'>" + data[i].name + "</span>" +
+                            " <div class='btn-toolbar'>" +
+                            "<a class='btn btn-primary btn-xs' onclick='downloadFile(" + data[i].index + ")'>Download</a>" +
+                            "</div>" +
+                            "</li>");
+                    }
+                    $("#output").html($("#output").html() + "<ul/>")
+
+                },
+                error: function (data) {
+                    console.log('failed');
+                }
+            });
+
+        });
+
+    });
+
 
     getGadgetLocation(function (gadget_Location) {
         gadgetLocation = gadget_Location;
@@ -117,7 +254,10 @@ $(function () {
         getLoggedInUser();
         loadOperator();
 
-        function loadOperator () {
+        $("#generateCSV").hide();
+        $("#tableSelect").hide();
+        $("#showCSV").hide();
+        function loadOperator() {
 
             if(loggedInUser.isOperatorAdmin) {
                 loadSP(loggedInUser.operatorNameInProfile);
@@ -139,7 +279,7 @@ $(function () {
                         var operatorNames = [];
                         var loadedOperator = [];
                         operatorNames.push(operatorName);
-                        operatorsItems += '<li><a data-val="all" href="#">All</a></li>';
+                        operatorsItems += '<li><a data-val="all" href="#">All Operator</a></li>';
                         for (var i = 0; i < data.length; i++) {
                             var operator = data[i];
                             if ($.inArray(operator.operatorName, loadedOperator) < 0) {
@@ -151,17 +291,22 @@ $(function () {
                             }
                         }
                         $("#dropdown-operator").html($("#dropdown-operator").html() + operatorsItems);
-                        $("#button-operator").val('<li><a data-val="all" href="#">All</a></li>');
+                        $("#button-operator").val('<li><a data-val="all" href="#">All Operator</a></li>');
 
                         loadSP(operatorNames);
 
                         $("#dropdown-operator li a").click(function () {
                             $("#button-operator").text($(this).text());
-                            $("#button-operator").append('<span class="caret"></span>');
+                            $("#button-operator").append('&nbsp;<span class="caret"></span>');
                             $("#button-operator").val($(this).text());
-                            operatorNames = $(this).data('val');
-                            loadSP(operatorNames);
+                            if($(this).data('val').toString() != 'all' ){
+                                loadSP( $(this).data('val'));     
+                            } else {
+                                loadSP(operatorNames);
+                            }  
+                            
                             operatorSelected = true;
+                            getFilterdResult();
                         });
                     }
                 });
@@ -172,7 +317,7 @@ $(function () {
 
             conf[PROVIDER_CONF][TABLE_NAME] = STREAMS.API_SUMMERY;
             conf[PROVIDER_CONF][PROVIDER_NAME] = TYPE.OPERATOR;
-            conf.operatorName =  clickedOperator;
+            conf.operatorName =  "("+clickedOperator+")";
             selectedOperator = conf.operatorName;
             serviceProviderId = 0;
 
@@ -187,11 +332,13 @@ $(function () {
                     async: false,
                     success: function (data) {
                         $("#dropdown-sp").empty();
+                        $("#button-sp").text('All Service provider');
+						$("#button-sp").append('&nbsp;<span class="caret"></span>');
                         var spItems = '';
                         var spIds = [];
                         var loadedSps = [];
                         spIds.push(serviceProviderId);
-                        spItems += '<li><a data-val="0" href="#">All</a></li>';
+                        spItems += '<li><a data-val="0" href="#">All Service provider</a></li>';
                         for ( var i = 0 ; i < data.length; i++) {
                             var sp = data[i];
                             if($.inArray(sp.serviceProviderId, loadedSps)<0){
@@ -202,17 +349,16 @@ $(function () {
                         }
                         $("#dropdown-sp").html(spItems);
 
-                        $("#button-sp").text('All');
-                        $("#button-sp").val('<li><a data-val="0" href="#">All</a></li>');
+                      //
+                        $("#button-sp").val('<li><a data-val="0" href="#">All Service provider</a></li>');
                         loadApp(spIds,selectedOperator);
                         $("#dropdown-sp li a").click(function(){
 
                             $("#button-sp").text($(this).text());
-                            $("#button-sp").append('<span class="caret"></span>');
+                            $("#button-sp").append('&nbsp;<span class="caret"></span>');
                             $("#button-sp").val($(this).text());
                             spIds = $(this).data('val');
                             serviceProviderId = spIds;
-
                             if(selectedOperator.toString() == "all") {
                                 if(spIds != "0") {
                                     loadApp( "\"" + spIds +"\"", selectedOperator.toString());
@@ -234,6 +380,7 @@ $(function () {
                                     }
                                 }
                             }
+                            getFilterdResult();
                         });
                     }
                 });
@@ -245,11 +392,11 @@ $(function () {
             conf[PROVIDER_CONF][TABLE_NAME] = STREAMS.API_SUMMERY;
             conf[PROVIDER_CONF][PROVIDER_NAME] = TYPE.SP;
             applicationId = 0;
+            application="0";
             if(sps != "0") {
                 conf.serviceProvider = sps;
             }
             conf.operatorName = clickedOperator; //TODO: check this brackets.
-
 
             $.ajax({
                 url: gadgetLocation + '/gadget-controller.jag?action=getData',
@@ -260,9 +407,12 @@ $(function () {
                 success: function (data) {
 
                     $("#dropdown-app").empty();
+                    $("#button-app").text('All Application');
+					$("#button-app").append('&nbsp;<span class="caret"></span>');
                     var apps = [];
                     var loadedApps = [];
-                    var appItems = '<li><a data-val="0" href="#">All</a></li>';
+                    var selectedApp = [];
+                    var appItems = '<li><a data-val="0" href="#">All Application</a></li>';
                     for ( var i = 0 ; i < data.length; i++) {
                         var app = data[i];
                         if($.inArray(app.applicationId, loadedApps) < 0 ) {
@@ -273,18 +423,26 @@ $(function () {
                     }
 
                     $("#dropdown-app").html( $("#dropdown-app").html() + appItems);
-                    $("#button-app").val('<li><a data-val="0" href="#">All</a></li>');
-                    $("#button-app").text('All');
+                    $("#button-app").val('<li><a data-val="0" href="#">All Application</a></li>');
+
                     loadApi(apps);
 
                     $("#dropdown-app li a").click(function() {
 
                         $("#button-app").text($(this).text());
-                        $("#button-app").append('<span class="caret"></span>');
+                        $("#button-app").append('&nbsp;<span class="caret"></span>');
                         $("#button-app").val($(this).text());
-                        apps = $(this).data('val');
-                        applicationId = apps;
-                        loadApi(apps);
+                        selectedApp = $(this).data('val');
+                        applicationId = selectedApp;
+						application=$(this).text();
+						
+                        if(selectedApp == "0") {
+                            loadApi(apps);
+                            getFilterdResult();
+                        } else {
+                            loadApi(selectedApp);
+                            getFilterdResult();
+                        }
                     });
                 }
             });
@@ -303,9 +461,11 @@ $(function () {
                 async: false,
                 success: function (data) {
                     $("#dropdown-api").empty();
+                    $("#button-api").text('All Api');
+					$("#button-api").append('&nbsp;<span class="caret"></span>');
                     var apis = [];
                     var loadedApis = [];
-                    var apiItems = '<li><a data-val="0" href="#">All</a></li>';
+                    var apiItems = '<li><a data-val="0" href="#">All Api</a></li>';
                     for ( var i = 0 ; i < data.length; i++) {
                         var api = data[i];
                         if($.inArray(api.apiID, loadedApis) < 0){
@@ -315,14 +475,15 @@ $(function () {
                     }
 
                     $("#dropdown-api").html( $("#dropdown-api").html() + apiItems);
-                    $("#button-api").val('<li><a data-val="0" href="#">All</a></li>');
-                    $("#button-api").text('All');
-
+                    $("#button-api").val('<li><a data-val="0" href="#">All Api</a></li>');
+                   //
+                    getFilterdResult();
                     $("#dropdown-api li a").click(function() {
                         $("#button-api").text($(this).text());
-                        $("#button-api").append('<span class="caret"></span>');
+                        $("#button-api").append('&nbsp;<span class="caret"></span>');
                         $("#button-api").val($(this).text());
                         apiId = $(this).data('val');
+                        getFilterdResult();
                     });
 
                 }
@@ -344,7 +505,17 @@ $(function () {
 
     $("#dropdown-type li a").click(function(){
         $("#button-type").text($(this).text());
-        $("#button-type").append('<span class="caret"></span>');
+        $("#button-type").append('&nbsp;<span class="caret"></span>');
         $("#button-type").val($(this).text());
+        getFilterdResult();
     });
-});
+}
+);
+
+function downloadFile(index) {
+    getGadgetLocation(function (gadget_Location) {
+        gadgetLocation = gadget_Location;
+        location.href = gadgetLocation + '/gadget-controller.jag?action=get&index=' + index;
+
+    });
+}

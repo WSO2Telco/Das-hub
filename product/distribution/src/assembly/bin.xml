@@ -318,9 +318,75 @@
             </outputDirectory>
         </fileSet>
 
+        <!-- ==================================================================== -->
+
+        <!-- replace css-->
         <fileSet>
             <directory>
-                customize/das-footer/
+                customize/dashboard/css/
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/deployment/server/jaggeryapps/portal/css/
+            </outputDirectory>
+        </fileSet>
+
+        <!-- replace js-->
+        <fileSet>
+            <directory>
+                customize/dashboard/js/
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/deployment/server/jaggeryapps/portal/js/
+            </outputDirectory>
+        </fileSet>
+
+
+        <!-- replace basic-login jag-->
+        <fileSet>
+            <directory>
+                customize/dashboard/locales
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/deployment/server/jaggeryapps/portal/extensions/authentication/
+            </outputDirectory>
+        </fileSet>
+
+         <!-- replace basic-login jag-->
+        <fileSet>
+            <directory>
+                customize/das-login/
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/deployment/server/jaggeryapps/portal/extensions/authentication/
+            </outputDirectory>
+        </fileSet>
+
+        <!-- add third party libs-->
+        <fileSet>
+            <directory>
+                customize/libs/
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/components/lib/
+            </outputDirectory>
+        </fileSet>
+
+        <!-- add jasper report template-->
+        <fileSet>
+            <directory>
+                customize/report-template/
+            </directory>
+            <outputDirectory>
+                ${pom.artifactId}-${pom.version}/repository/conf/
+            </outputDirectory>
+        </fileSet>
+
+
+        <!-- ==================================================================== -->
+
+        <fileSet>
+            <directory>
+                customize/das-template/
             </directory>
             <outputDirectory>
                 ${pom.artifactId}-${pom.version}/repository/deployment/server/jaggeryapps/portal/theme/templates/includes
@@ -1131,6 +1197,16 @@
         <file>
             <source>
                 ../p2-profile-gen/target/wso2carbon-core-${carbon.kernel.version}/repository/deployment/server/carbonapps/org.wso2telco.analytics.hub_processing-1.0.0.car
+            </source>
+            <outputDirectory>${pom.artifactId}-${pom.version}/repository/deployment/server/carbonapps</outputDirectory>
+            <!--commented since this tag causes issues in maven assembly plugin when copying zip formats-->
+            <!--filtered>true</filtered-->
+            <fileMode>644</fileMode>
+        </file>
+
+        <file>
+            <source>
+                ../p2-profile-gen/target/wso2carbon-core-${carbon.kernel.version}/repository/deployment/server/carbonapps/org.wso2telco.analytics.bill_processing-1.0.0.car
             </source>
             <outputDirectory>${pom.artifactId}-${pom.version}/repository/deployment/server/carbonapps</outputDirectory>
             <!--commented since this tag causes issues in maven assembly plugin when copying zip formats-->

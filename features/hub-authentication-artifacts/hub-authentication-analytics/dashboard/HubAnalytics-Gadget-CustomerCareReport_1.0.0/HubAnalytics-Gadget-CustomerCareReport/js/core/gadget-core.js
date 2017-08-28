@@ -33,6 +33,31 @@ $(function () {
             }
         });        
     };
+
+
+    var getLoggedInUser = function () {
+        $.ajax({
+            url: gadgetLocation + '/gadget-controller.jag?action=getLoggedInUser',
+            method: METHOD.POST,
+            data: JSON.stringify(conf),
+            contentType: CONTENT_TYPE,
+            async: false,
+            success: function (data) {
+                loggedInUser = data.LoggedInUser;
+                operatorName = loggedInUser.operatorNameInProfile;
+
+                // hide the operator / serviceProvider drop-down according to logged in user
+                hideDropDown(loggedInUser);
+            },
+            complete : function (xhr, textStatus) {
+                if (xhr.status == "403") {
+                    window.top.location.reload(false);
+                }
+				
+            }
+        });
+    };
+
     // Add event listener for opening and closing details
     $('#devSupportTable').on('click', 'td.details-control', function () {
         var tr = $(this).closest('tr');
@@ -126,11 +151,16 @@ $(function () {
         reloadDatatable();
     });
 
+     $('#btnCustomRange').on('apply.daterangepicker', function(ev, picker) {
+       reloadDatatable();
+    });
+
     $('#dropdown-operator, #dropdown-sp, #dropdown-app  ').click(function () {
         reloadDatatable();
     });
 
     function reloadDatatable() {
+        getLoggedInUser();
         getDatatableConf();
         mytable.ajax.reload();
     };
@@ -139,6 +169,9 @@ $(function () {
         conf["provider-conf"]["provider-name"] = "operator";
         conf.operatorName = "all";
         conf.operatorNames = "";
+		getLoggedInUser();
+		
+		
         
         $.ajax({
             url: gadgetLocation + '/gadget-controller.jag?action=getData',
@@ -148,7 +181,10 @@ $(function () {
             async: false,
             success: function (data) {
                 conf.operatorNames = setDropdown("#dropdown-operator", "#button-operator", data, conf.operatorName, "operatorName",null, null);
-                loadSP();             
+                loadSP();    
+				
+				
+				
                 $("#dropdown-operator li a").click(function () {                   
                     providerButtons("#button-operator", this);
                     conf.operatorName = $(this).data('val');
@@ -173,7 +209,11 @@ $(function () {
                 loadApp();             
                 $("#dropdown-sp li a").click(function () {                                        
                     providerButtons("#button-sp", this);
-                    conf.serviceProvider =  $(this).data('val');
+                    if( $(this).data('val').toString() != 'all' ){
+                        conf.serviceProvider =  "\"" + $(this).data('val') +"\"";
+                    } else {
+                        conf.serviceProvider =  $(this).data('val') ;
+                    }
                     loadApp();
                 });
             }
@@ -217,7 +257,7 @@ $(function () {
 
     function providerButtons(buttonName, parent){
         $(buttonName).text($(parent).text());
-        $(buttonName).append('<span class="caret"></span>');
+        $(buttonName).append('&nbsp;<span class="caret"></span>');
         $(buttonName).val($(parent).text());
     };
 
@@ -226,8 +266,17 @@ $(function () {
         var operatorsItems = "";
         var operatorNames = [];
         var loadedOperator = [];
+        var optionname = "";
         operatorNames.push(providerAllValue);
-        operatorsItems += '<li><a data-val="all" href="#">All</a></li>';
+        if(elementDropdown == "#dropdown-operator") {
+          optionname = 'All Operator';
+        } else if(elementDropdown == "#dropdown-sp") {
+          optionname = 'All Service provider';
+        } else if(elementDropdown == "#dropdown-app") {
+            optionname = 'All Application';
+        }
+
+       operatorsItems += '<li><a data-val="all" href="#">' + optionname +'</a></li>';
         for (var i = 0; i < data.length; i++) {
             var operator = data[i];            
             if ($.inArray(operator[providerName], loadedOperator) < 0) {
@@ -244,15 +293,19 @@ $(function () {
         }
         if (replace != null){
             $(elementDropdown).html(operatorsItems);
-            $(elementButton).text('All');
+            $(elementButton).text('All Service provider');
+		    $(elementButton).append('&nbsp;<span class="caret"></span>');
             $(elementButton).val('<li><a data-val="0" href="#">All</a></li>');
         } else if(providerName2 != null) {
             $(elementDropdown).html($(elementDropdown).html() + operatorsItems);
             $(elementButton).val('<li><a data-val="0" href="#">All</a></li>');
-            $(elementButton).text('All');
+            $(elementButton).text('All Application');
+			$(elementButton).append('&nbsp;<span class="caret"></span>');
         } else{
             $(elementDropdown).html($(elementDropdown).html() + operatorsItems);
             $(elementButton).val('<li><a data-val="all" href="#">All</a></li>');
+            $(elementButton).text('All Operators');
+            $(elementButton).append('&nbsp;<span class="caret"></span>');
         }         
         return operatorNames;
     };

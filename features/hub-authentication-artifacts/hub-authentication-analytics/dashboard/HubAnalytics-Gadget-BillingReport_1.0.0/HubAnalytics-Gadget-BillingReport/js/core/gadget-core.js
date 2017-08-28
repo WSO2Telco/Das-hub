@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
@@ -19,25 +20,19 @@ $(function () {
     var schema;
     var pref = new gadgets.Prefs();
 
-    var refreshInterval;
     var providerData;
 
-    var CHART_CONF = 'chart-conf';
-    var PROVIDER_CONF = 'provider-conf';
-    var REFRESH_INTERVAL = 'refreshInterval';
-    var operatorName = "all", serviceProviderId = 0, apiId = 0, applicationId = 0;
-    var role;
+    var operatorName = "all", serviceProviderId = 0;
+    var loggedInUser;
     var selectedOperator;
     var operatorSelected = false;
 
 
     var init = function () {
-
-
         $.ajax({
             url: gadgetLocation + '/conf.json',
-            method: "GET",
-            contentType: "application/json",
+            method: METHOD.GET,
+            contentType: CONTENT_TYPE,
             async: false,
             success: function (data) {
                 conf = JSON.parse(data);
@@ -48,22 +43,12 @@ $(function () {
                     conf.operatorName =  operatorName;
                 }
                 conf.serviceProvider = serviceProviderId;
-                conf.api = apiId;
-                conf.applicationName = applicationId;
-                conf.dateStart = moment(moment($("#reportrange").text().split("-")[0]).format("MMMM D, YYYY hh:mm A")).valueOf();
-                conf.dateEnd = moment(moment($("#reportrange").text().split("-")[1]).format("MMMM D, YYYY hh:mm A")).valueOf();
-
-                if($("#button-type").val().toLowerCase().trim() == "error traffic") {
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_FAILURE_SUMMARY_PER_DAY";
-                } else {
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_TRAFFIC_SUMMARY_PER_DAY";
-                }
 
                 $.ajax({
                     url: gadgetLocation + '/gadget-controller.jag?action=getSchema',
-                    method: "POST",
+                    method: METHOD.POST,
                     data: JSON.stringify(conf),
-                    contentType: "application/json",
+                    contentType: CONTENT_TYPE,
                     async: false,
                     success: function (data) {
                         schema = data;
@@ -73,60 +58,39 @@ $(function () {
         });
     };
 
-
-    var getRole = function () {
-        console.log("************************"+ $('input[name="gender"]:checked').val());
-        conf.operator = "test123";
-        conf["provider-conf"]["tableName"] = "test";
+    var getLoggedInUser = function () {
         $.ajax({
-            url: gadgetLocation + '/gadget-controller.jag?action=getRole',
-            method: "POST",
+            url: gadgetLocation + '/gadget-controller.jag?action=getLoggedInUser',
+            method: METHOD.POST,
             data: JSON.stringify(conf),
-            contentType: "application/json",
+            contentType: CONTENT_TYPE,
             async: false,
             success: function (data) {
-                role = data.role;
-                if("operatoradmin" == role) {
-                    $("#operatordd").hide();
-                } else {
-                    $("#operatordd").show();
+                loggedInUser = data.LoggedInUser;
+                operatorName = loggedInUser.operatorNameInProfile;
+
+                // hide the operator / serviceProvider drop-down according to logged in user
+                hideDropDown(loggedInUser);
+
+                if (!(loggedInUser.isAdmin) && (loggedInUser.isOperatorAdmin || loggedInUser.isCustomerCareUser)) {
+                    $("#yearContainer").removeClass("col-top-pad");
+                    $("#monthContainer").removeClass("col-top-pad");
+            
+                    //conf.operatorName = operatorName;
+                } else if (!(loggedInUser.isAdmin) && loggedInUser.isServiceProvider) {
+                    $("#yearContainer").removeClass("col-top-pad");
+                    $("#monthContainer").removeClass("col-top-pad");
                 }
-            }
-        });
-    };
 
 
-    var getOperatorNameInProfile = function () {
-        conf.operator = "test123";
-        conf["provider-conf"]["tableName"] = "test";
-        $.ajax({
-            url: gadgetLocation + '/gadget-controller.jag?action=getProfileOperator',
-            method: "POST",
-            data: JSON.stringify(conf),
-            contentType: "application/json",
-            async: false,
-            success: function (data) {
-                operatorName = data.operatorName;
-            }
-        });
-    };
-
-    var getRole = function () {
-        conf.operator = "test123";
-        conf["provider-conf"]["tableName"] = "test";
-        $.ajax({
-            url: gadgetLocation + '/gadget-controller.jag?action=getRole',
-            method: "POST",
-            data: JSON.stringify(conf),
-            contentType: "application/json",
-            async: false,
-            success: function (data) {
-                role = data.role;
-                if("operatoradmin" == role) {
-                    $("#operatordd").hide();
-                    conf.operatorName = operatorName;
-                } else {
-                    $("#operatordd").show();
+                if(!(loggedInUser.isAdmin)) {
+                    $("#directiondd").hide();
+                    $("#repriceContainer").hide();
+                }
+            },
+            complete : function (xhr, textStatus) {
+                if (xhr.status == "403") {
+                    window.top.location.reload(false);
                 }
             }
         });
@@ -134,58 +98,134 @@ $(function () {
 
     var getProviderData = function (){
 
-        if($("#button-type").val().toLowerCase().trim() == "error traffic") {
-            conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_FAILURE_SUMMARY_PER_";
-        } else {
-            conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_TRAFFIC_SUMMARY_PER_";
-        }
-
         $.ajax({
             url: gadgetLocation + '/gadget-controller.jag?action=getData',
-            method: "POST",
+            method: METHOD.POST,
             data: JSON.stringify(conf),
-            contentType: "application/json",
+            contentType: CONTENT_TYPE,
             async: false,
             success: function (data) {
                 providerData = data;
             }
         });
-        if(providerData != '') {
-            $("#generateCSV").show();
-            if(role == "admin"){
-                $("#tableSelect").show();
-            }
 
-        } else {
-            $("#generateCSV").hide();
-            $("#tableSelect").hide();
-
-        }
         return providerData;
     };
 
+    var initiateReprice = function (){
+        console.log('Inintiating repricing');
+        $.ajax({
+            url: gadgetLocation + '/gadget-controller.jag?action=initiateReprice',
+            method: METHOD.POST,
+            data: JSON.stringify(conf),
+            contentType: CONTENT_TYPE,
+            async: false,
+            success: function (data) {
+                providerData = data;
+            }
+        });
 
-    var drawGadget = function (){
-        draw('#canvas', conf[CHART_CONF], schema, providerData);
-        setInterval(function() {
-            draw('#canvas', conf[CHART_CONF], schema, getProviderData());
-        },pref.getInt(REFRESH_INTERVAL));
+        return providerData;
     };
 
-
-    $("#button-search").click(function() {
-        $("#canvas").html("");
-        $("#canvas2").html("");
-        $("#showCSV").hide();
+    function getFilterdResult() {
         getGadgetLocation(function (gadget_Location) {
             gadgetLocation = gadget_Location;
             init();
             getProviderData();
-            drawGadget();
+        });
+    };
+
+    $("#button-search").click(function() {
+        getGadgetLocation(function (gadget_Location) {
+            getLoggedInUser();
+            gadgetLocation = gadget_Location;
+            init();
+            getProviderData();
+        });
+    });
+    
+    function setConfDara() {
+    	conf.applicationf=$("#button-app").text();
+		conf.operatorf=$("#button-operator").text();
+		conf.spf= $("#button-sp").text();
+		conf.apif=$("#button-api").text();
+    };
+
+    $("#button-initiate-reprice").click(function () {
+        initiateReprice();
+    });
+
+    $("#button-generate-bill-csv").click(function () {
+        getLoggedInUser();
+        getGadgetLocation(function (gadget_Location) {
+            gadgetLocation = gadget_Location;
+            $("#output").html("");
+            if(operatorSelected) {
+                conf.operatorName =  selectedOperator;
+            } else {
+                conf.operatorName =  operatorName;
+            }
+            setConfDara();
+            conf.serviceProvider = serviceProviderId;
+
+            var year = $("#button-year").val();
+            var month = $("#button-month").val();
+            var isDirectionSet = true;
+
+            if(loggedInUser.isAdmin) {
+                var direction = $("#button-dir").val();
+                if (direction === "") {
+                    isDirectionSet = false;
+                    $("#popupcontent p").html('Please select direction');
+                    $('#notifyModal').modal('show');
+                    return;
+                } else {
+                    conf.direction = direction;
+                }
+            }
+
+            if(year === "") {
+                $("#popupcontent p").html('Please select year');
+                $('#notifyModal').modal('show');
+            }
+            else if(month === "") {
+                $("#popupcontent p").html('Please select month');
+                $('#notifyModal').modal('show');
+            } else if (isDirectionSet) {
+
+                $("#list-summery-report").removeClass("hidden");
+                conf.year = year;
+                conf.month = month;
+
+                var btn = $("#button-generate-bill-csv");
+                btn.prop('disabled', true);
+                setTimeout(function () {
+                    btn.prop('disabled', false);
+                }, 2000);
+
+                $.ajax({
+                    url: gadgetLocation + '/gadget-controller.jag?action=generateCSV',
+                    method: METHOD.POST,
+                    data: JSON.stringify(conf),
+                    contentType: CONTENT_TYPE,
+                    async: false,
+                    success: function (data) {
+
+                        $("#list-available-report").show();
+                        $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
+                            + "Please refresh the billing report"
+                            + '</div>' + $("#output").html());
+                        $('#success-message').fadeIn().delay(2000).fadeOut();
+                    }
+                });
+            }
         });
     });
 
-    $("#button-generate-tr").click(function () {
+
+    $("#button-generate-error-csv").click(function () {
+        getLoggedInUser();
         getGadgetLocation(function (gadget_Location) {
             gadgetLocation = gadget_Location;
             $("#output").html("");
@@ -195,61 +235,65 @@ $(function () {
                 conf.operatorName =  operatorName;
             }
             conf.serviceProvider = serviceProviderId;
-            conf.api = apiId;
-            conf.applicationName = applicationId;
+            setConfDara();
+            var year = $("#button-year").val();
+            var month = $("#button-month").val();
+            var isDirectionSet = true;
 
-            conf.dateStart = moment(moment($("#reportrange").text().split("-")[0]).format("MMMM D, YYYY hh:mm A")).valueOf();
-            conf.dateEnd = moment(moment($("#reportrange").text().split("-")[1]).format("MMMM D, YYYY hh:mm A")).valueOf();
-
-            if($("#button-type").val().toLowerCase().trim() == "error traffic") {
-
-                conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_FAILURE_SUMMARY_PER_";
-            } else {
-                getRole();
-
-                if(role == "admin"){
-
-                    if($('input[name="gender"]:checked').val()=="sb") {
-                        conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_SOUTHBOUND_REPORT_SUMMARY_PER_DAY";
-                    }else if($('input[name="gender"]:checked').val()=="nb"){
-                        conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_NORTHBOUND_REPORT_SUMMARY_PER_DAY";
-                    }
-                } else if(role == "serviceProvider") {
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_NORTHBOUND_REPORT_SUMMARY_PER_DAY";
-                } else if(role == "operatoradmin") {
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_SOUTHBOUND_REPORT_SUMMARY_PER_DAY";
+            if(loggedInUser.isAdmin) {
+                var direction = $("#button-dir").val();
+                if (direction === "") {
+                    isDirectionSet = false;
+                    $("#popupcontent p").html('Please select direction');
+                    $('#notifyModal').modal('show');
+                    return;
+                } else {
+                    conf.direction = direction;
                 }
-
             }
 
-            var btn =  $("#button-generate-tr");
-            btn.prop('disabled', true);
-            setTimeout(function(){
-                btn.prop('disabled', false);
-            }, 3000);
+            if(year === "") {
+                $("#popupcontent p").html('Please select year');
+                $('#notifyModal').modal('show');
+            }
+            else if(month === "") {
+                $("#popupcontent p").html('Please select month');
+                $('#notifyModal').modal('show');
+            } else if (isDirectionSet) {
 
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=generateCSV',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-                    $("#showCSV").show();
-                    $("#list-available-report").show();
-                    $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
-                        + "Please refresh the traffic report"
-                        + '</div>' + $("#output").html());
-                    $('#success-message').fadeIn().delay(2000).fadeOut();
-                }
-            });
+                $("#list-error-report").removeClass("hidden");
+                conf.year = year;
+                conf.month = month;
+
+                var btn = $("#button-generate-bill-csv");
+                btn.prop('disabled', true);
+                setTimeout(function () {
+                    btn.prop('disabled', false);
+                }, 2000);
+
+                $.ajax({
+                    url: gadgetLocation + '/gadget-controller.jag?action=generateErrorCSV',
+                    method: METHOD.POST,
+                    data: JSON.stringify(conf),
+                    contentType: CONTENT_TYPE,
+                    async: false,
+                    success: function (data) {
+
+                        $("#list-error-report").show();
+                        $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
+                            + "Please refresh the billing error report"
+                            + '</div>' + $("#output").html());
+                        $('#success-message').fadeIn().delay(2000).fadeOut();
+                    }
+                });
+            }
         });
     });
 
-
-    $("#button-generate-bill").click(function () {
+    $("#button-generate-bill-pdf").click(function () {
+        getLoggedInUser();
+        $("#output").html("");
         getGadgetLocation(function (gadget_Location) {
-            $("#output").html("");
             var serviceProviderName = $("#button-sp").val();
 
             gadgetLocation = gadget_Location;
@@ -258,75 +302,93 @@ $(function () {
             } else {
                 conf.operatorName =  operatorName;
             }
+            setConfDara();
             conf.serviceProvider = serviceProviderId;
-            conf.api = apiId;
-            conf.applicationName = applicationId;
-            conf.serviceProviderName = serviceProviderName;
+            var year = $("#button-year").val();
+            var month = $("#button-month").val();
+            var isDirectionSet = true;
 
-            conf.dateStart = moment(moment($("#reportrange").text().split("-")[0]).format("MMMM D, YYYY hh:mm A")).valueOf();
-            conf.dateEnd = moment(moment($("#reportrange").text().split("-")[1]).format("MMMM D, YYYY hh:mm A")).valueOf();
-
-            getRole();
-            if(role == "admin"){
-
-                if($('input[name="gender"]:checked').val()=="sb"){
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_SOUTHBOUND_REPORT_SUMMARY_PER_DAY";
-                }else if($('input[name="gender"]:checked').val()=="nb"){
-                    conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_NORTHBOUND_REPORT_SUMMARY_PER_DAY";
+            if(loggedInUser.isAdmin) {
+                var direction = $("#button-dir").val();
+                if (direction === "") {
+                    isDirectionSet = false;
+                    $("#popupcontent p").html('Please select direction');
+                    $('#notifyModal').modal('show');
+                    return;
+                } else {
+                    conf.direction = direction;
                 }
-            } else if(role == "serviceProvider") {
-                conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_NORTHBOUND_REPORT_SUMMARY_PER_DAY";
-            } else if(role == "operatoradmin") {
-                conf["provider-conf"].tableName = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_SOUTHBOUND_REPORT_SUMMARY_PER_DAY";
             }
 
-            var btn =  $("#button-generate-bill");
-            btn.prop('disabled', true);
-            setTimeout(function(){
-                btn.prop('disabled', false);
-            }, 3000);
+            if(year === "") {
+                $("#popupcontent p").html('Please select year');
+                $('#notifyModal').modal('show');
+            } else if(month === "") {
+                $("#popupcontent p").html('Please select month');
+                $('#notifyModal').modal('show');
+            } else if (isDirectionSet) {
+                conf.year = year;
+                conf.month = month;
+                $("#list-the-bill").removeClass("hidden");
 
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=generateBill',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-                    $("#list-available-report").show();
 
-                    $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
-                        + '</div>' + $("#output").html());
-                    $('#success-message').fadeIn().delay(2000).fadeOut();
-                    $("#showCSV").show();
+                var btn = $("#button-generate-bill-pdf");
+                btn.prop('disabled', true);
+                setTimeout(function () {
+                    btn.prop('disabled', false);
+                }, 2000);
 
-                }
-            });
+                setTimeout(function () {
+                    $.ajax({
+                        url: gadgetLocation + '/gadget-controller.jag?action=generateBill',
+                        method: "POST",
+                        data: JSON.stringify(conf),
+                        contentType: "application/json",
+                        async: true,
+                        success: function (data) {
+                            $("#output").html('<div id="success-message" class="alert alert-success"><strong>Report is generating</strong> '
+                                + "Please refresh the billing report"
+                                + '</div>' + $("#output").html());
+                            $('#success-message').fadeIn().delay(2000).fadeOut();
+                        }
+                    });
+                }, 100);
+
+            }
         });
     });
 
 
-    $("#list-available-report").click(function () {
+    $("#list-summery-report").click(function () {
+        getLoggedInUser();
         $("#output").html("");
         getGadgetLocation(function(gadget_Location) {
             gadgetLocation = gadget_Location;
             $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=available',
-                method: "POST",
+                url: gadgetLocation + '/gadget-controller.jag?action=availableCSV',
+                method: METHOD.POST,
                 data: JSON.stringify(conf),
-                contentType: "application/json",
+                contentType: CONTENT_TYPE,
                 async: false,
                 success: function(data) {
-                    $("#output").html("<ul class = 'list-group'>")
-                    for (var i = 0; i < data.length; i++) {
-                        $("#output").html($("#output").html() + "<li class = 'list-group-item'>" +
-                            " <span class='btn-label'>" + data[i].name + "</span>" +
-                            " <div class='btn-toolbar'>" +
-                            "<a class='btn btn-primary btn-xs' onclick='downloadFile(" + data[i].index + ")'>Download</a>" +
-                            "</div>" +
-                            "</li>");
-                    }
-                    $("#output").html($("#output").html() + "<ul/>")
+					
+					if( data[0].name=="0"){
+						
+						$("#output").html("No generated files")
+					}else{
+						$("#output").html("<ul class = 'list-group'>")
+						for (var i = 0; i < data.length; i++) {
+							$("#output").html($("#output").html() + "<li class = 'list-group-item'>" +
+								" <span class='btn-label'>" + data[i].name + "</span>" +
+								" <div class='btn-toolbar'>" +
+								"<a class='btn btn-primary btn-xs' onclick='downloadFile(" + data[i].index + ", \"csv\")'>Download</a>" +
+								"<a class='btn btn-primary btn-xs' onclick='removeFile(" + data[i].index + ", \"csv\")'>Remove</a>" +
+								"</div>" +
+								"</li>");
+						}
+						$("#output").html($("#output").html() + "<ul/>")
+						
+					}
 
                 }
             });
@@ -334,240 +396,315 @@ $(function () {
         });
     });
 
+    $("#list-error-report").click(function () {
+        getLoggedInUser();
+        $("#output").html("");
+        getGadgetLocation(function(gadget_Location) {
+            gadgetLocation = gadget_Location;
+            $.ajax({
+                url: gadgetLocation + '/gadget-controller.jag?action=availableErrorCSV',
+                method: METHOD.POST,
+                data: JSON.stringify(conf),
+                contentType: CONTENT_TYPE,
+                async: false,
+                success: function(data) {
+					if( data[0].name=="0"){
+						
+						$("#output").html("No generated files")
+					}else{
+						$("#output").html("<ul class = 'list-group'>")
+						for (var i = 0; i < data.length; i++) {
+							$("#output").html($("#output").html() + "<li class = 'list-group-item'>" +
+								" <span class='btn-label'>" + data[i].name + "</span>" +
+								" <div class='btn-toolbar'>" +
+								"<a class='btn btn-primary btn-xs' onclick='downloadFile(" + data[i].index + ", \"csv-error\")'>Download</a>" +
+								"<a class='btn btn-primary btn-xs' onclick='removeFile(" + data[i].index + ", \"csv-error\")'>Remove</a>" +
+								"</div>" +
+								"</li>");
+						}
+						$("#output").html($("#output").html() + "<ul/>")
+					}
 
+                }
+            });
 
+        });
+    });
+
+    $("#list-the-bill").click(function () {
+        getLoggedInUser();
+        $("#output").html("");
+
+        getGadgetLocation(function(gadget_Location) {
+            gadgetLocation = gadget_Location;
+            $.ajax({
+                url: gadgetLocation + '/gadget-controller.jag?action=availablePDF',
+                method: METHOD.POST,
+                data: JSON.stringify(conf),
+                contentType: CONTENT_TYPE,
+                async: false,
+                success: function(data) {
+					if( data[0].name=="0"){
+						
+						$("#output").html("No generated files")
+					}else{
+						$("#output").html("<ul class = 'list-group'>")
+						for (var i = 0; i < data.length; i++) {
+							var pdf = "pdf";
+							$("#output").html($("#output").html() + "<li class = 'list-group-item'>" +
+								" <span class='btn-label'>" + data[i].name + "</span>" +
+								" <div class='btn-toolbar'>" +
+								"<a class='btn btn-primary btn-xs' onclick='downloadFile(" + data[i].index + ",  \"pdf\")'>Download</a>" +
+								"<a class='btn btn-primary btn-xs' onclick='removeFile(" + data[i].index + ", \"pdf\")'>Remove</a>" +
+								"</div>" +
+								"</li>");
+						}
+						$("#output").html($("#output").html() + "<ul/>")
+					}
+
+                }
+            });
+
+        });
+    });
+
+    var createYearSelectBox = function () {
+        var date = new Date();
+        var fixYear = date.getFullYear();
+        var currentMonth = date.getMonth();
+        var currentYear = fixYear;
+        var allMonths = false;
+
+        $("#button-year").text(currentYear);
+        $("#button-year").append('&nbsp;<span class="caret"></span>');
+        $("#button-month").text(moment(currentMonth+1, 'MM').format('MMMM'));
+        $("#button-month").append('&nbsp;<span class="caret"></span>');
+        $("#button-year").val(currentYear);
+        $("#button-month").val(moment(currentMonth+1, 'MM').format('MMMM'));
+
+        for (var i = 1; i <= 3; i++) {
+            $("#dropdown-year").append(
+                $('<li><a data-val='+currentYear+' href="#">'+currentYear+'</a></li>')
+            );
+            currentYear--;
+        }
+        $("#dropdown-year li a").click(function(){
+            $("#dropdown-month").html("");
+            $("#button-year").text($(this).text());
+            $("#button-year").append('&nbsp;<span class="caret"></span>');
+            $("#button-year").val($(this).text());
+            var selectedYear = $("#button-year").val();
+            if (selectedYear != fixYear) {
+                allMonths = true;
+                var monthList = getmonthList(currentMonth, allMonths);
+                prepareMonthDropDown(monthList)
+                registerMonthEvent();
+
+            } else {
+                allMonths = false;
+                var monthList = getmonthList(currentMonth, allMonths);
+                prepareMonthDropDown(monthList);
+                registerMonthEvent();
+            }
+        });
+
+        //set upto current month
+        var monthList = getmonthList(currentMonth, allMonths);
+        prepareMonthDropDown(monthList);
+        registerMonthEvent();
+    };
+
+    $("#button-dir").click(function () {
+            var direction = $("#button-dir").val();
+            if (direction == 'nb') {
+                $("#operatordd").hide();
+            }
+    });
 
     getGadgetLocation(function (gadget_Location) {
         gadgetLocation = gadget_Location;
         init();
-        getRole();
+        getLoggedInUser();
+        createYearSelectBox();
         loadOperator();
-        $("#generateCSV").hide();
-        $("#tableSelect").hide();
-        $("#showCSV").hide();
+        function loadOperator () {
 
-        function loadOperator (){
-            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_OPERATOR_SUMMARY";
-            conf["provider-conf"]["provider-name"] = "operator";
-            conf.operatorName = "all";
-            operatorName = "all";
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-                    $("#dropdown-operator").empty();
-                    var operatorsItems = "";
-                    var operatorNames = [];
-                    var loadedOperator = [];
-                    operatorNames.push(operatorName);
-                    operatorsItems += '<li><a data-val="all" href="#">All</a></li>';
-                    for (var i =0 ; i < data.length; i++) {
-                        var operator = data[i];
-                        if($.inArray(operator.operatorName, loadedOperator)<0){
-                            operatorsItems += '<li><a data-val='+ operator.operatorName +' href="#">' + operator.operatorName +'</a></li>';
-                            operatorNames.push(" "+operator.operatorName);
-                            loadedOperator.push(operator.operatorName);
+            if (loggedInUser.isOperatorAdmin) {
+                loadSP(loggedInUser.operatorNameInProfile);
+            } else {
+                conf[PROVIDER_CONF][TABLE_NAME] = STREAMS.OPERATOR_SUMMERY;
+                conf[PROVIDER_CONF][PROVIDER_NAME] = TYPE.OPERATOR;
+                conf.operatorName = "all";
+                operatorName = "all";
+                $.ajax({
+                    url: gadgetLocation + '/gadget-controller.jag?action=getData',
+                    method: METHOD.POST,
+                    data: JSON.stringify(conf),
+                    contentType: CONTENT_TYPE,
+                    async: false,
+                    success: function (data) {
+                        $("#dropdown-operator").empty();
+                        var operatorsItems = "";
+                        var operatorNames = [];
+                        var loadedOperator = [];
+                        operatorNames.push(operatorName);
+                        operatorsItems += '<li><a data-val="all" href="#">All Operator</a></li>';
+                        for (var i = 0; i < data.length; i++) {
+                            var operator = data[i];
+                            if ($.inArray(operator.operatorName, loadedOperator) < 0) {
+                                operatorsItems += '<li><a data-val=' + operator.operatorName + ' href="#">' + operator.operatorName + '</a></li>';
+                                if(operator.operatorName.toString() != "all") {
+                                    operatorNames.push(" " + "\"" + operator.operatorName +"\"");
+                                }
+                                loadedOperator.push(operator.operatorName);
+                            }
                         }
-                    }
-                    $("#dropdown-operator").html( $("#dropdown-operator").html() + operatorsItems);
-                    $("#button-operator").val('<li><a data-val="all" href="#">All</a></li>');
-                    if("operatoradmin" == role) {
-                        getOperatorNameInProfile();
-                        loadSP(operatorName);
-                    } else {
-                        loadSP(operatorNames);
-                    }
+                        $("#dropdown-operator").html($("#dropdown-operator").html() + operatorsItems);
+                        $("#button-operator").val('<li><a data-val="all" href="#">All Operator</a></li>');
 
-                    $("#dropdown-operator li a").click(function(){
-                        $("#button-operator").text($(this).text());
-                        $("#button-operator").append('<span class="caret"></span>');
-                        $("#button-operator").val($(this).text());
-                        operatorNames = $(this).data('val');
                         loadSP(operatorNames);
-                        operatorSelected = true;
-
-                    });
-                }
-            });
+                        $("#dropdown-operator li a").click(function () {
+                            $("#button-operator").text($(this).text());
+                            $("#button-operator").append('&nbsp;<span class="caret"></span>');
+                            $("#button-operator").val($(this).text());
+                            //operatorNames = $(this).data('val');
+                            if ($(this).data('val') == 'all'){
+                                loadSP(operatorNames);
+                            } else {
+                                loadSP($(this).data('val'));
+                            }                            
+                            operatorSelected = true;
+                        });
+                    }
+                });
+            }
         }
 
-        function loadSP (clickedOperator){
+        function loadSP (clickedOperator) {
+            getLoggedInUser();
+            conf[PROVIDER_CONF][TABLE_NAME] = STREAMS.API_SUMMERY;
+            conf[PROVIDER_CONF][PROVIDER_NAME] = TYPE.OPERATOR;
 
-            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
-            conf["provider-conf"]["provider-name"] = "operator";
-
-            conf.operatorName = "("+clickedOperator+")";
+            conf.operatorName = clickedOperator;
             selectedOperator = conf.operatorName;
             serviceProviderId =0;
 
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-                    $("#dropdown-sp").empty();
-                    var spItems = '';
-                    var spIds = [];
-                    var loadedSps = [];
-                    spIds.push(serviceProviderId);
-                    spItems += '<li><a data-val="0" href="#">All</a></li>';
-                    for ( var i =0 ; i < data.length; i++) {
-                        var sp = data[i];
-                        if($.inArray(sp.serviceProviderId, loadedSps)<0){
-                            spItems += '<li><a data-val='+ sp.serviceProviderId +' href="#">' + sp.serviceProvider.replace("@carbon.super","") +'</a></li>'
-                            spIds.push(" "+sp.serviceProviderId);
-                            loadedSps.push(sp.serviceProviderId);
+            if (!loggedInUser.isServiceProvider) {
+
+                $.ajax({
+                    url: gadgetLocation + '/gadget-controller.jag?action=getData',
+                    method: METHOD.POST,
+                    data: JSON.stringify(conf),
+                    contentType: CONTENT_TYPE,
+                    async: false,
+                    success: function (data) {
+                        $("#dropdown-sp").empty();
+                        $("#button-sp").text('All Service provider');
+						$("#button-sp").append('&nbsp;<span class="caret"></span>');
+                        var spItems = '';
+                        var spIds = [];
+                        var loadedSps = [];
+                        spIds.push(serviceProviderId);
+                        spItems += '<li><a data-val="0" href="#">All Service provider</a></li>';
+                        for (var i = 0; i < data.length; i++) {
+                            var sp = data[i];
+                            if($.inArray(sp.serviceProviderId, loadedSps) < 0){
+                                spItems += '<li><a data-val='+ sp.serviceProviderId +' href="#">' + sp.serviceProvider.replace("@carbon.super","") +'</a></li>'
+                                spIds.push(" "+ "\"" + sp.serviceProviderId + "\"");
+                                loadedSps.push(sp.serviceProviderId);
+                            }
                         }
+
+                        $("#dropdown-sp").html(spItems);
+
+                        $("#button-sp").val('<li><a data-val="0" href="#">All Service provider</a></li>');
+
+                        $("#dropdown-sp li a").click(function(){
+                            getLoggedInUser();
+                            $("#button-sp").text($(this).text());
+                            $("#button-sp").append('&nbsp;<span class="caret"></span>');
+                            $("#button-sp").val($(this).text());
+                            serviceProviderId = $(this).data('val');
+
+                            if(serviceProviderId != "0"){
+                                conf.serviceProvider = serviceProviderId;
+                            } else {
+                                conf.serviceProvider = spIds;
+                            }
+                        });
                     }
-
-                    $("#dropdown-sp").html(spItems);
-
-                    $("#button-sp").text('All');
-                    $("#button-sp").val('All');
-
-                    loadApp(spIds,selectedOperator);
-                    $("#dropdown-sp li a").click(function(){
-
-                        $("#button-sp").text($(this).text());
-                        $("#button-sp").append('<span class="caret"></span>');
-                        $("#button-sp").val($(this).text());
-                        // var clickedSP = [];
-                        // clickedSP.push($(this).data('val'));
-                        spIds = $(this).data('val');
-                        serviceProviderId = spIds;
-
-                        loadApp(spIds,selectedOperator);
-                    });
-
-
-                }
-            });
-        }
-
-        function loadApp (sps,clickedOperator){
-            // alert(sps);
-            // if(sps)
-            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
-            conf["provider-conf"]["provider-name"] = "sp";
-            applicationId = 0;
-            conf.serviceProvider = "("+sps+")";
-            conf.operatorName = "("+clickedOperator+")";
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-
-                    $("#dropdown-app").empty();
-                    var apps = [];
-                    var loadedApps = [];
-                    var appItems = '<li><a data-val="0" href="#">All</a></li>';
-
-                    for ( var i =0 ; i < data.length; i++) {
-                        var app = data[i];
-                        if($.inArray(app.applicationId, loadedApps)<0){
-                            appItems += '<li><a data-val='+ app.applicationId +' href="#">' + app.applicationName +'</a></li>'
-                            apps.push(" "+app.applicationId);
-                            loadedApps.push(app.applicationId);
-                        }
-                    }
-
-                    $("#dropdown-app").html( $("#dropdown-app").html() + appItems);
-                    $("#button-app").val('<li><a data-val="0" href="#">All</a></li>');
-                    $("#button-app").text('All');
-                    // loadApp(sps[i]);
-
-                    loadApi(apps);
-
-                    $("#dropdown-app li a").click(function(){
-
-                        $("#button-app").text($(this).text());
-                        $("#button-app").append('<span class="caret"></span>');
-                        $("#button-app").val($(this).text());
-                        // var clickedSP = [];
-                        // clickedSP.push($(this).data('val'));
-                        apps = $(this).data('val');
-                        applicationId = apps;
-                        loadApi(apps);
-                    });
-
-                }
-            });
-        }
-
-        function loadApi (apps){
-            conf["provider-conf"]["tableName"] = "ORG_WSO2TELCO_ANALYTICS_HUB_STREAM_API_SUMMARY";
-            conf["provider-conf"]["provider-name"] = "app";
-            conf.applicationId = "("+apps+")";
-            apiId = 0;
-            $.ajax({
-                url: gadgetLocation + '/gadget-controller.jag?action=getData',
-                method: "POST",
-                data: JSON.stringify(conf),
-                contentType: "application/json",
-                async: false,
-                success: function (data) {
-
-
-                    $("#dropdown-api").empty();
-                    var apis = [];
-                    var loadedApis = [];
-                    var apiItems = '<li><a data-val="0" href="#">All</a></li>';
-                    for ( var i =0 ; i < data.length; i++) {
-                        var api = data[i];
-                        if($.inArray(api.apiID, loadedApis)<0){
-                            apiItems += '<li><a data-val='+ api.apiID +' href="#">' + api.api +'</a></li>';
-                            loadedApis.push(api.apiID);
-                        }
-                    }
-
-                    $("#dropdown-api").html( $("#dropdown-api").html() + apiItems);
-                    $("#button-api").val('<li><a data-val="0" href="#">All</a></li>');
-                    $("#button-api").text('All');
-                    // loadApp(sps[i]);
-                    $("#dropdown-api li a").click(function(){
-                        $("#button-api").text($(this).text());
-                        $("#button-api").append('<span class="caret"></span>');
-                        $("#button-api").val($(this).text());
-                        apiId = $(this).data('val');
-                    });
-
-                }
-            });
-        }
-
-        $("#button-app").val("All");
-        $("#button-api").val("All");
-        $("#button-type").val("Api Traffic");
-
-        $('input[name="daterange"]').daterangepicker({
-            timePicker: true,
-            timePickerIncrement: 30,
-            locale: {
-                format: 'MM/DD/YYYY h:mm A'
+                });
             }
-        });
+        }
+
+        $("#button-type").val("Billing");
+
+    });
+    $("#dropdown-direction li a").click(function () {
+        if ($(this).data('val') == 'nb') {
+            $("#operatordd").hide();
+        } else {
+            $("#operatordd").show();
+        }
+        $("#button-dir").text($(this).text());
+        $("#button-dir").append('&nbsp;<span class="caret"></span>');
+        $("#button-dir").val($(this).data('val'));
     });
 
-    $("#dropdown-type li a").click(function(){
-        $("#button-type").text($(this).text());
-        $("#button-type").append('<span class="caret"></span>');
-        $("#button-type").val($(this).text());
-    });
+    function registerMonthEvent () {
+        $("#dropdown-month li a").click(function () {
+            $("#button-month").text($(this).text());
+            $("#button-month").append('&nbsp;<span class="caret"></span>');
+            $("#button-month").val($(this).data('val'));
+        });
+    }
+
+    function prepareMonthDropDown (monthList) {
+        monthList.forEach(function (row) {
+            $("#dropdown-month").append(
+                $('<li><a data-val='+row+' href="#">'+row+'</a></li>')
+            );
+        });
+    }
 });
 
 
-function downloadFile(index) {
+function downloadFile(index, type) {
     getGadgetLocation(function (gadget_Location) {
         gadgetLocation = gadget_Location;
-        location.href = gadgetLocation + '/gadget-controller.jag?action=get&index=' + index;
+        location.href = gadgetLocation + '/gadget-controller.jag?action=get&index=' + index +'&type='+ type;
 
     });
+}
+
+function removeFile(index, type) {
+    getGadgetLocation(function(gadget_Location) {
+        gadgetLocation = gadget_Location;
+        $.ajax({
+            url: gadgetLocation + '/gadget-controller.jag?action=remove&index=' + index+'&type='+ type,
+            method: METHOD.POST,
+            contentType: CONTENT_TYPE,
+            async: false,
+            success: function(data) {
+                if(type == 'csv') {
+                    $("#list-summery-report").click();
+                }
+                else if (type == 'csv-error'){
+                    $("#list-error-report").click();
+                } else {
+                    $("#list-the-bill").click();
+                }
+            }
+        });
+    });
+}
+
+function getmonthList (month, allList) {
+    var monthList = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    if (allList) {
+        return monthList;
+    } else {
+        var monthloadlist = monthList.slice(0, month+1);
+        return monthloadlist;
+    }
 }
