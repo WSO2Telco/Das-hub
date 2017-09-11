@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.killbill.billing.client.model.Invoice;
+import org.killbill.billing.client.model.InvoiceItem;
 import org.wso2.carbon.analytics.dataservice.commons.AnalyticsDataResponse;
 import org.wso2.carbon.analytics.dataservice.commons.SearchResultEntry;
 import org.wso2.carbon.analytics.dataservice.core.AnalyticsDataServiceUtils;
@@ -291,40 +292,53 @@ class PDFReportEngineGenerator implements Runnable {
                          int maxLength, String year, String month, String username)
             throws AnalyticsException {
 
-        Record invoiceRecord = null;
+        Record invoiceRecord;
+        List<Record> records = new ArrayList<>();
         String accountId = getKillBillAccount(tenantId, username);
         Invoice invoiceForMonth = getInvoice(month, accountId);
 
-        if (invoiceForMonth != null) {
+        List<InvoiceItem> invoiceItems = invoiceForMonth.getItems();
+
+        for (InvoiceItem invoiceItem : invoiceItems) {
+            String[] invoiceDescription = invoiceItem.getDescription().split("|");
+            String api = invoiceDescription[0];
+            String applicationName = invoiceDescription[1];
+            String serviceProvider = invoiceDescription[2];
+            String operatorName = invoiceDescription[3];
+            String operation = invoiceDescription[4];
+            String category = invoiceDescription[5];
+            String subCategory = invoiceDescription[6];
+
+
             Map<String, Object> values = new HashMap<>();
             values.put("serviceProviderId", username);
             values.put("year", year);
             values.put("totalHbCommision", 0.0);
             values.put("totalCount", 0);
-            values.put("operatorName", "");
-            values.put("totalAmount", 0.0);
+            values.put("operatorName", operatorName);
+            values.put("totalAmount", "");
             values.put("month", month);
-            values.put("serviceProvider", username);
+            values.put("serviceProvider", serviceProvider);
             values.put("totalOpCommision", 0.0);
-            values.put("api", "invoiceApi");
-            values.put("totalSpCommision", 0.0);
+            values.put("api", api);
+            values.put("totalSpCommision", invoiceItem.getAmount());
             values.put("applicationId", 12);
-            values.put("category", "");
-            values.put("subcategory", "");
+            values.put("category", category);
+            values.put("subcategory", subCategory);
             values.put("totalTaxAmount", 0.0);
             values.put("_version", "1.0.0");
             values.put("operatorId", "1");
-            values.put("operation", "invoice");
-            values.put("applicationName", "appName");
+            values.put("operation", operation);
+            values.put("applicationName", applicationName);
             values.put("direction", direction);
             invoiceRecord = new Record(tenantId, tableName, values);
             invoiceRecord.setId(UUID.randomUUID().toString());
 
+            records.add(invoiceRecord);
         }
-
         int dataCount = ReportEngineServiceHolder.getAnalyticsDataService()
                 .searchCount(tenantId, tableName, query);
-        List<Record> records = new ArrayList<>();
+
         List<String> ids = new ArrayList<>();
         if (dataCount > 0) {
             List<SearchResultEntry> resultEntries = ReportEngineServiceHolder.getAnalyticsDataService()
@@ -338,9 +352,7 @@ class PDFReportEngineGenerator implements Runnable {
 
             records = AnalyticsDataServiceUtils
                     .listRecords(ReportEngineServiceHolder.getAnalyticsDataService(), resp);
-            if(invoiceRecord != null){
-                records.add(invoiceRecord);
-            }
+
             Collections.sort(records, new Comparator<Record>() {
                 @Override
                 public int compare(Record o1, Record o2) {

@@ -10,6 +10,7 @@ import org.killbill.billing.client.model.InvoiceItem;
 import org.wso2telco.analytics.sparkUdf.configProviders.ConfigurationDataProvider;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -57,9 +58,12 @@ public class BillUpdaterService {
     private Invoice getInvoiceForMonthFromList(List<Invoice> invoices, Date date) {
         // TODO Auto-generated method stub
 
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+
         for (Invoice invoice : invoices) {
             LocalDate targetDate = invoice.getTargetDate();
-            if (targetDate.getMonthOfYear() == date.getMonth()) {
+            if (targetDate.getMonthOfYear() == calendar.get(Calendar.MONTH) + 1) {
                 return invoice;
             }
 
