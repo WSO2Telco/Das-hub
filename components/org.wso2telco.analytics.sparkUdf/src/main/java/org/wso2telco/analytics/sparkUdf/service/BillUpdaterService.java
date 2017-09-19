@@ -76,7 +76,6 @@ public class BillUpdaterService {
 	 * 
 	 * To use this method need to use correct killbill client version compatibility metric:http://killbill.io/downloads/
 	 */
-
 	private UUID updateInvoice(Invoice invoice,String description,Double amount) throws KillBillClientException {
 		// TODO Auto-generated method stub
 		InvoiceItem invoiceItem=new InvoiceItem();
@@ -95,5 +94,6 @@ public class BillUpdaterService {
 		}*/
 		return invoiceItem.getInvoiceItemId();	
 	}
+
 
 }
